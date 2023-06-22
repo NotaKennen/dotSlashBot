@@ -4,6 +4,7 @@ from discord.ext import commands
 from compiler import compile
 import threading
 from queue import Queue
+import asyncio
 
 import os
 import shutil
@@ -54,7 +55,52 @@ async def on_ready():
 
 @bot.command(brief="Learn SlashScript here!")
 async def documentation(ctx):
-    await ctx.send("Coming soon")
+    contents = ["Table of contents:\n\n2. SlashScript introduction\n3. Basic syntax\n4. Commands\n5. Respond\n6. Var\n7. Math\n8. If\n9. Goto\n10. Exit",
+                'SlashScript is a small programming "language", or a script as I prefer to call it. The language isnt too big as its not meant to be used for bigger projects, but you can make quite a bit of fun stuff with it.',
+                "SlashScript uses a lot of spaces ~~~for smart interactions with users~~ because the developer is too lazy to code proper compiling. Because of this, parenthesis and quotes aren't seen too often.",
+                "SlashScript has a total of 6 commands (as of 22/06/2023), these are: Respond, Var, Math, If, Goto and Exit. Each of these commands has a documentation page, feel free to check them.",
+                "Respond is the equivalent of Print in python, the syntax is 'respond [message]', the message will appear at the end of execution. If you want to 'print' a variable, you need to use 'respond VAR [variable]', caps is necessary.",
+                "Var works for assigning variables. SlashScript has 3 variable types: int/float, str and bool. The syntax is: 'var [name] [value]'. The type is calculated automatically.",
+                "The math command can do math and turn it into a variable, usage is: 'math [variable] [value1] [operator] [value2]'. The operator can be: +, -, *, /, %",
+                "If is for conditionals. The syntax is: 'if [variable] [operator] [variable] [goto] <elsegoto>'. Goto means the line to go to if the condition is true. Elsegoto means the line to go to if the condition is false, and is optional. The operators are *exactly* like python's.",
+                "Goto is for jumping lines, the syntax is 'goto [line]'",
+                "Exit is as simple as it gets, it exits the program. The syntax is 'exit'"]
+    pages = 10
+    cur_page = 1
+    message = await ctx.send(f"Page {cur_page}/{pages}:\n{contents[cur_page-1]}")
+    # getting the message object for editing and reacting
+
+    await message.add_reaction("◀️")
+    await message.add_reaction("▶️")
+
+    def check(reaction, user):
+        return user == ctx.author and str(reaction.emoji) in ["◀️", "▶️"]
+        # This makes sure nobody except the command sender can interact with the "menu"
+
+    while True:
+        try:
+            reaction, user = await bot.wait_for("reaction_add", timeout=60, check=check)
+            # waiting for a reaction to be added - times out after x seconds, 60 in this
+            # example
+
+            if str(reaction.emoji) == "▶️" and cur_page != pages:
+                cur_page += 1
+                await message.edit(content=f"Page {cur_page}/{pages}:\n{contents[cur_page-1]}")
+                await message.remove_reaction(reaction, user)
+
+            elif str(reaction.emoji) == "◀️" and cur_page > 1:
+                cur_page -= 1
+                await message.edit(content=f"Page {cur_page}/{pages}:\n{contents[cur_page-1]}")
+                await message.remove_reaction(reaction, user)
+
+            else:
+                await message.remove_reaction(reaction, user)
+                # removes reactions if the user tries to go forward on the last page or
+                # backwards on the first page
+        except asyncio.TimeoutError:
+            await message.delete()
+            break
+            # ending the loop if user doesn't react after x seconds
 
 @bot.command(brief="Upload programs to use for later")
 async def upload_program(ctx, name=None): 

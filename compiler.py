@@ -105,7 +105,7 @@ def compile(commandline, queue):
                     operator = command[3]
                     value2 = command[4]
 
-                    exec(f"{storage} ={value1} {operator} {value2}")
+                    exec(f"{storage} = {value1} {operator} {value2}")
                 except IndexError:
                     raise IndexError(f"({linenum}) Math command is missing arguments")
                 except ArithmeticError:
@@ -175,6 +175,7 @@ def compile(commandline, queue):
                 break # Go to line break
                 # Go to line
 
+            # Goto line
             elif command[0] == "goto":
                 if command[1].isnumeric():
                     gotoline = int(command[1])
