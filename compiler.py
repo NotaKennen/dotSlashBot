@@ -190,6 +190,31 @@ def compile(commandline, queue):
                 gotoline = None
                 break
 
+            # Http request
+            elif command[0] == "request":
+                variable = command[1]
+                rtype = command[2]
+                address = command[3]
+                posttype = None
+                try:
+                    posttype = command[4]
+                except IndexError:
+                    posttype = None
+
+                exec(f"{variable} = requests.{rtype}('{address}')")
+                if posttype is not None:
+                    if posttype == "json":
+                        posttype = "json()"
+                    elif posttype == "text":
+                        posttype = "text"
+                    elif posttype == "content":
+                        posttype = "content"
+                    else:
+                        raise VariableError(f"({linenum}) Unknown posttype")
+                        
+                    exec(f"{variable} = {variable}.{posttype}")
+
+
             # Raise error on unknown commands
             else:
                 raise CommandError(f'({linenum}) Invalid command, "{line}"')
