@@ -10,3 +10,4 @@ with administrator: https://discord.com/api/oauth2/authorize?client_id=112129539
 without administrator: https://discord.com/api/oauth2/authorize?client_id=1121295399601319958&permissions=2048&scope=bot
 
 It technically taking doesn't need admin, but for future purposes I'm gonna do both.
+KEEP IN MIND THAT THE BOT IS *NOT* HOSTED RIGHT NOW, IT WILL ONLY WORK WHEN I'M DEBUGGING (so kinda useless ig)
