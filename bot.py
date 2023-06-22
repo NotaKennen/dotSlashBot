@@ -76,7 +76,7 @@ async def run_line(ctx, *, line: str=None):
 
 @bot.command(brief="Learn about SlashScript here!")
 async def documentation(ctx):
-    contents = ["Table of contents:\n\n2. SlashScript introduction\n3. Basic syntax\n4. Commands\n5. Respond\n6. Var\n7. Math\n8. If\n9. Goto\n10. Exit\n11. Sources",
+    contents = ["Table of contents:\n\n2. SlashScript introduction\n3. Basic syntax\n4. Commands\n5. Respond\n6. Var\n7. Math\n8. If\n9. Goto\n10. Exit\n11. request\n12. Sources",
                 'SlashScript is a small programming "language", or a script as I prefer to call it. The language isnt too big as its not meant to be used for bigger projects, but you can make quite a bit of fun stuff with it.',
                 "SlashScript uses a lot of spaces ~~~for smart interactions with users~~ because the developer is too lazy to code proper compiling. Because of this, parenthesis and quotes aren't seen too often.",
                 "SlashScript has a total of 6 commands (as of 22/06/2023), these are: Respond, Var, Math, If, Goto and Exit. Each of these commands has a documentation page, feel free to check them.",
@@ -86,6 +86,7 @@ async def documentation(ctx):
                 "If is for conditionals. The syntax is: 'if [variable] [operator] [variable] [goto] <elsegoto>'. Goto means the line to go to if the condition is true. Elsegoto means the line to go to if the condition is false, and is optional. The operators are *exactly* like python's.",
                 "Goto is for jumping lines, the syntax is 'goto [line]'",
                 "Exit is as simple as it gets, it exits the program. The syntax is 'exit'",
+                "Request is used to get http requests from the internet. This might be a bit complicated. Syntax: request [method] [url] <decoding> (At the time of writing, it might be a bit broken).",
                 "You can find both the bot's and the compiler's source code here: https://github.com/NotaKennen/dotSlashBot. You can DM the developer (Memarios_) with extra questions or ideas."]
     pages = 11
     cur_page = 1
