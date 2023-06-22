@@ -6,5 +6,7 @@ SlashScript is my language that is "hijacked" from the Python compiler. It only 
 
 # Discord invite 
 with administrator: https://discord.com/api/oauth2/authorize?client_id=1121295399601319958&permissions=8&scope=bot
+
 without administrator: https://discord.com/api/oauth2/authorize?client_id=1121295399601319958&permissions=2048&scope=bot
+
 It technically taking doesn't need admin, but for future purposes I'm gonna do both.
