@@ -16,6 +16,7 @@ class VariableError(Exception):
 import discord
 from discord.ext import commands
 from queue import Queue
+import requests
 
 def compile(commandline, queue):
 
