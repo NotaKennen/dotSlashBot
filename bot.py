@@ -88,7 +88,7 @@ async def documentation(ctx):
                 "Exit is as simple as it gets, it exits the program. The syntax is 'exit'",
                 "Request is used to get http requests from the internet. This might be a bit complicated. Syntax: request [method] [url] <decoding> (At the time of writing, it might be a bit broken).",
                 "You can find both the bot's and the compiler's source code here: https://github.com/NotaKennen/dotSlashBot. You can DM the developer (Memarios_) with extra questions or ideas."]
-    pages = 11
+    pages = 12
     cur_page = 1
     message = await ctx.send(f"Page {cur_page}/{pages}:\n{contents[cur_page-1]}")
     # getting the message object for editing and reacting
