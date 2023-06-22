@@ -5,23 +5,17 @@ class UnknownException(Exception):
     pass
 class VariableError(Exception):
     pass
+class httpError(Exception):
+    pass
 # End
 
-"""
-    Commands:
-     - Respond
-     - 
-"""
-
-import discord
-from discord.ext import commands
 from queue import Queue
 import requests
 
-def compile(commandline, queue):
+def compile(commandlist, queue):
 
     commands = []
-    for i in commandline:
+    for i in commandlist:
         i = i.replace("\n", "")
         commands.append(i)
 
@@ -194,27 +188,30 @@ def compile(commandline, queue):
 
             # Http request
             elif command[0] == "request":
-                variable = command[1]
-                rtype = command[2]
-                address = command[3]
-                posttype = None
                 try:
-                    posttype = command[4]
-                except IndexError:
+                    variable = command[1]
+                    rtype = command[2]
+                    address = command[3]
                     posttype = None
+                    try:
+                        posttype = command[4]
+                    except IndexError:
+                        posttype = None
 
-                exec(f"{variable} = requests.{rtype}('{address}')")
-                if posttype is not None:
-                    if posttype == "json":
-                        posttype = "json()"
-                    elif posttype == "text":
-                        posttype = "text"
-                    elif posttype == "content":
-                        posttype = "content"
-                    else:
-                        raise VariableError(f"({linenum}) Unknown posttype")
-                        
-                    exec(f"{variable} = {variable}.{posttype}")
+                    exec(f"{variable} = requests.{rtype}('{address}')")
+                    if posttype is not None:
+                        if posttype == "json":
+                            posttype = "json()"
+                        elif posttype == "text": # I know this here sucks
+                            posttype = "text"
+                        elif posttype == "content":
+                            posttype = "content"
+                        else:
+                            raise VariableError(f"({linenum}) Unknown posttype")
+                            
+                        exec(f"{variable} = {variable}.{posttype}")
+                except httpError as e:
+                    raise httpError(f"({linenum}) This error is here to prevent crashes, you did something wrong: {e}")
 
 
             # Raise error on unknown commands
