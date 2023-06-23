@@ -7,6 +7,8 @@ class VariableError(Exception):
     pass
 class httpError(Exception):
     pass
+class MathError(Exception):
+    pass
 # End
 
 from queue import Queue
@@ -93,11 +95,20 @@ def compile(commandlist, queue):
 
             # Simple math 
             elif command[0] == "math":
-                try: # TODO: allow variables
+                try:
                     storage = command[1]
                     value1 = command[2]
                     operator = command[3]
                     value2 = command[4]
+
+                    # Variable acceptance
+                    try:
+                        if not value1.isnumeric():
+                            exec(f"value1 = int({value1})")
+                        if not value2.isnumeric():
+                            exec(f"value2 = int({value2})")
+                    except:
+                        raise MathError(f"({linenum}) Value 1 or value 2 is not an integer, or the variable does not include an integer.")
 
                     exec(f"{storage} = {value1} {operator} {value2}")
                 except IndexError:
@@ -209,8 +220,8 @@ def compile(commandlist, queue):
                         else:
                             raise VariableError(f"({linenum}) Unknown posttype")
                             
-                        exec(f"{variable} = {variable}.{posttype}")
-                except httpError as e:
+                        exec(f"{variable} = {variable}.{posttype}") #FIXME: idk why is it only giving out JsonDecodeError, most likely improper testing?
+                except httpError as e: 
                     raise httpError(f"({linenum}) This error is here to prevent crashes, you did something wrong: {e}")
 
 
@@ -219,4 +230,5 @@ def compile(commandlist, queue):
                 raise CommandError(f'({linenum}) Invalid command, "{line}"')
         if gotoline is None:
             break
+    # Response output V
     queue.put(response)
