@@ -9,8 +9,6 @@ import asyncio
 import os
 import shutil
 
-#TODO: fix an issue with error management, causes crash instead of raising issue. Source unknown
-
 print("----------------------------------------------")
 
 def runprogram(ctx, filename, author, mode, arguments: str=None):
