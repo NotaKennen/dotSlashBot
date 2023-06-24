@@ -1,6 +1,7 @@
 from queue import Queue
 import requests # exec() doesn't see it as a needed import, even though it is (?)
 from random import randint # Same thing as ^
+import time
 
 def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
 
@@ -11,6 +12,12 @@ def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
         queue.put(["ERROR LOG", error])
         exit()
 
+    def checkTimeout(starttime):
+        X = 120
+        while True:
+            if time.time() > starttime + X:
+                raiseError("The script was taking too long, so it was terminated.")
+
     commands = []
     for i in commandlist:
         i = i.replace("\n", "")
@@ -20,16 +27,17 @@ def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
     gotoline = None
     response = []
     requiresadmin = False
+    starttime = time.time()
 
     # Compiler loop
     while True:
-
         # Obvious variables
         linenum = 0
         skipline = False
 
         # Command runner
         for line in commands:
+            checkTimeout(starttime)
 
             # linenum + and command split 
             linenum += 1

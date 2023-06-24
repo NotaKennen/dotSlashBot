@@ -114,7 +114,7 @@ async def run_line(ctx, *, line: str=None):
 async def documentation(ctx):
     contents = ["Table of contents:\n\n2. SlashScript introduction\n3. Limitations and resources\n4. Basic syntax\n5. Commands\n6. Respond\n7. Var\n8. Math\n9. If\n10. Goto\n11. Exit\n12. request\n13. tags\n14. Administrator access\n15. Randomness\n16. Sources",
                 'SlashScript is a small programming "language", or a script as I prefer to call it. The language isnt too big as its not meant to be used for bigger projects, but you can make quite a bit of fun stuff with it.',
-                "Due to the whole language running on a single server, the limitations are quite high. The Maximum runtime of scripts is 120s (to stop infinite loops), and the maximum memory usage is 10 mb (Which is enough to run quite a bit of stuff).",
+                "Due to the whole language running on a single server, the limitations are quite high. The Maximum runtime of scripts is 120s (to stop infinite loops and memory hogging). For most basic scripts, this should be fine.",
                 "SlashScript uses a lot of spaces ~~~for smart interactions with users~~ because the developer is too lazy to code proper compiling. Because of this, parenthesis and quotes aren't seen too often.",
                 "SlashScript has a total of 8 commands (as of 24/06/2023), these are: Respond, Var, Math, If, Goto, Exit, random and request. Each of these commands has a documentation page, feel free to check them.",
                 "Respond is the equivalent of Print in python, the syntax is 'respond [message]', the message will appear at the end of execution. If you want to 'print' a variable, you need to use 'respond VAR [variable]', caps is necessary.",
