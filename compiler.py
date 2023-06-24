@@ -9,12 +9,15 @@ class httpError(Exception):
     pass
 class MathError(Exception):
     pass
+class PermissionError(Exception):
+    pass
 # End
 
 from queue import Queue
 import requests
+from random import randint
 
-def compile(commandlist, queue):
+def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
 
     commands = []
     for i in commandlist:
@@ -24,6 +27,8 @@ def compile(commandlist, queue):
     # Non-resetting obvious variables
     gotoline = None
     response = []
+    requiresadmin = False
+    # admin_access = False (default)
     while True:
 
         # Obvious variables
@@ -37,6 +42,12 @@ def compile(commandlist, queue):
             linenum += 1
             command = line.split(" ")
 
+            ### LOGIC ###
+ 
+            # Admin logic
+            if requiresadmin == True and admin_access == False:
+                raise PermissionError("You don't have the required administrative access to run this program.")
+
             # Gotoline logic
             if gotoline is not None:
                 if gotoline > linenum:
@@ -49,6 +60,8 @@ def compile(commandlist, queue):
             if skipline is True:
                 continue
 
+            ### COMMANDS ###
+
             # Empty line
             if command == ['']:
                 continue
@@ -56,6 +69,13 @@ def compile(commandlist, queue):
             # Comment
             elif command[0] == "#" or command[0] == "//":
                 continue
+
+            # tags
+            elif command[0] == "./":
+                if command[1] == "requiresadmin":
+                    requiresadmin = True
+                else:
+                    raise SyntaxError(f"({linenum}) Invalid tag: ({command[1]})")
 
             # Respond
             elif command[0] == "respond":
@@ -223,6 +243,15 @@ def compile(commandlist, queue):
                         exec(f"{variable} = {variable}.{posttype}") #FIXME: idk why is it only giving out JsonDecodeError, most likely improper testing?
                 except httpError as e: 
                     raise httpError(f"({linenum}) This error is here to prevent crashes, you did something wrong: {e}")
+
+            # RNG
+            elif command[0] == "random":
+                storage = command[1]
+                minimum = command[2]
+                maximum = command[3]
+                if minimum > maximum:
+                    raise VariableError(f"({linenum}) Minimum value is higher than maximum value.")
+                exec(f"{storage} = random.randint({minimum}, {maximum})")
 
 
             # Raise error on unknown commands

@@ -11,9 +11,20 @@ import shutil
 
 print("----------------------------------------------")
 
-def runprogram(filename, author, mode):
+def runprogram(ctx, filename, author, mode, arguments: str=None):
     if mode != "temp" and mode != "permanent":
         raise SyntaxError("Failure in code")
+    
+    ### Logic ###
+
+    if ctx.message.author.guild_permissions.administrator:
+        admin = True
+    else:
+        admin = False
+
+    arguments = arguments.split(" ")
+
+    ### Execution ###
     
     # Ready program for execution
     if mode == "permanent":
@@ -26,7 +37,7 @@ def runprogram(filename, author, mode):
 
     try: # Execution
         queue = Queue()
-        programthread = threading.Thread(name=filename, target=compile, args=(code, queue)) # make thread
+        programthread = threading.Thread(name=filename, target=compile, args=(code, queue, admin, arguments)) # make thread
         programthread.start() # Run program
         programthread.join() # Wait for program to finish
         response = queue.get() # get response
@@ -34,8 +45,8 @@ def runprogram(filename, author, mode):
         # Response fancycating
         strresponse = "" # Make a string
         for i in response: # No lists
-            strresponse += str(i)
-            strresponse += "\n\n"
+            strresponse += str(i) # Add item to string
+            strresponse += "\n\n" # Padding
 
         return (True, strresponse)
     except Exception as e: # Failure catching
@@ -59,9 +70,14 @@ async def run_line(ctx, *, line: str=None):
         await ctx.send("Usage: ./run_line (code)")
         return
     line = line.split("\n")
+
+    if ctx.message.author.guild_permissions.administrator:
+        admin = True
+    else:
+        admin = False
     
     queue = Queue()
-    programthread = threading.Thread(name=ctx.author, target=compile, args=(line, queue)) # make thread
+    programthread = threading.Thread(name=ctx.author, target=compile, args=(line, queue, admin)) # make thread
     programthread.start() # Run program
     programthread.join() # Wait for program to finish
     response = queue.get() # get response
@@ -76,7 +92,8 @@ async def run_line(ctx, *, line: str=None):
 
 @bot.command(brief="Learn about SlashScript here!")
 async def documentation(ctx):
-    contents = ["Table of contents:\n\n2. SlashScript introduction\n3. Limitations and resources\n4. Basic syntax\n5. Commands\n6. Respond\n7. Var\n8. Math\n9. If\n10. Goto\n11. Exit\n12. request\n13. Sources",
+    #TODO: Write about RNG and tags, also update command numbers
+    contents = ["Table of contents:\n\n2. SlashScript introduction\n3. Limitations and resources\n4. Basic syntax\n5. Commands\n6. Respond\n7. Var\n8. Math\n9. If\n10. Goto\n11. Exit\n12. request\n13. Administrator access\n14. Sources",
                 'SlashScript is a small programming "language", or a script as I prefer to call it. The language isnt too big as its not meant to be used for bigger projects, but you can make quite a bit of fun stuff with it.',
                 "Due to the whole language running on a single server, the limitations are quite high. The Maximum runtime of scripts is 120s (to stop infinite loops), and the maximum memory usage is 10 mb (Which is enough to run quite a bit of stuff).",
                 "SlashScript uses a lot of spaces ~~~for smart interactions with users~~ because the developer is too lazy to code proper compiling. Because of this, parenthesis and quotes aren't seen too often.",
@@ -88,8 +105,9 @@ async def documentation(ctx):
                 "Goto is for jumping lines, the syntax is 'goto [line]'",
                 "Exit is as simple as it gets, it exits the program. The syntax is 'exit'",
                 "Request is used to get http requests from the internet. This might be a bit complicated. Syntax: request [method] [url] <decoding> (At the time of writing, it might be a bit broken).",
+                "Some actions (discord commands) may require administrator access from the runner, if you use these commands. You need to add the tag './ requiresadmin' at the start of the file, otherwise it will raise a permissionerror.",
                 "You can find both the bot's and the compiler's source code here: https://github.com/NotaKennen/dotSlashBot. You can DM the developer (Memarios_) with extra questions or ideas."]
-    pages = 12
+    pages = 14
     cur_page = 1
     message = await ctx.send(f"Page {cur_page}/{pages}:\n{contents[cur_page-1]}")
     # getting the message object for editing and reacting
@@ -162,7 +180,7 @@ async def delete_program(ctx, *, name=None):
         return
 
 @bot.command(brief="Run a program you have saved")
-async def program(ctx, name: str=None):
+async def program(ctx, name: str=None, *, arguments: str=None):
     # Only ./program (or ./program self)
     if name is None:
         if not os.path.exists(f"Saved programs/{ctx.author.id}"):
@@ -177,14 +195,14 @@ async def program(ctx, name: str=None):
     # ./program (name) <program name>
     else:
         if os.path.exists(f"Saved programs/{ctx.author.id}/{name}"):
-            response = runprogram(name, ctx.author.id, "permanent")
+            response = runprogram(ctx, name, ctx.author.id, "permanent", arguments)
             await ctx.send(response[1])
         else:
             await ctx.send("The program does not exist")
             return
             
 @bot.command(brief="Run a program without saving it")
-async def run_file(ctx):
+async def run_file(ctx, *, arguments: str=None):
     # Get file from user
     try:
         for attachment in ctx.message.attachments:
@@ -194,15 +212,15 @@ async def run_file(ctx):
                 os.makedirs(f"temp programs/{ctx.author.id}")
             shutil.move(filename, f"temp programs/{ctx.author.id}/{filename}")
     except Exception as e:
-        await ctx.send(e)
+        await ctx.send(f"The bot had an issue running the program, most likely you forgot to attach the file: {e}")
         return
 
     try:
-        response = runprogram(filename, ctx.author.id, "temp")
+        response = runprogram(ctx, filename, ctx.author.id, "temp", arguments)
         await ctx.send(response[1]) # Send response
         os.remove(f"temp programs/{ctx.author.id}/{filename}") # Remove file
     except Exception as e:
-        await ctx.send(f"The bot had an issue running the program, please try again later\n\n{e}")
+        await ctx.send(response[1])
 
 ####################################################
 
