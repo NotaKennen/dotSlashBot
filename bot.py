@@ -9,6 +9,8 @@ import asyncio
 import os
 import shutil
 
+#TODO: fix an issue with error management, causes crash instead of raising issue. Source unknown
+
 print("----------------------------------------------")
 
 def runprogram(ctx, filename, author, mode, arguments: str=None):
@@ -22,7 +24,10 @@ def runprogram(ctx, filename, author, mode, arguments: str=None):
     else:
         admin = False
 
-    arguments = arguments.split(" ")
+    if arguments is None:
+        arguments = [""]
+    else:
+        arguments = arguments.split(" ")
 
     ### Execution ###
     
@@ -41,6 +46,9 @@ def runprogram(ctx, filename, author, mode, arguments: str=None):
         programthread.start() # Run program
         programthread.join() # Wait for program to finish
         response = queue.get() # get response
+
+        if response[0] == "ERROR LOG":
+            return [False, f"The program had an issue:\n{response[1]}"]
         
         # Response fancycating
         strresponse = "" # Make a string
@@ -50,7 +58,7 @@ def runprogram(ctx, filename, author, mode, arguments: str=None):
 
         return (True, strresponse)
     except Exception as e: # Failure catching
-        return (False, f"The program had an issue:\n{e}")
+        return (False, f"An internal issue happened:\n{e}")
 
 
 intents = discord.Intents.all()

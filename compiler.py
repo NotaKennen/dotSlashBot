@@ -1,23 +1,15 @@
-# Exceptions
-class CommandError(Exception):
-    pass
-class UnknownException(Exception):
-    pass
-class VariableError(Exception):
-    pass
-class httpError(Exception):
-    pass
-class MathError(Exception):
-    pass
-class PermissionError(Exception):
-    pass
-# End
-
 from queue import Queue
-import requests
-from random import randint
+import requests # exec() doesn't see it as a needed import, even though it is (?)
+from random import randint # Same thing as ^
 
 def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
+
+    # Fancier exceptions because the older ones sucked
+    def raiseError(error: str):
+        #with queue.mutex:
+            #queue.queue.clear()
+        queue.put(["ERROR LOG", error])
+        exit()
 
     commands = []
     for i in commandlist:
@@ -46,7 +38,7 @@ def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
  
             # Admin logic
             if requiresadmin == True and admin_access == False:
-                raise PermissionError("You don't have the required administrative access to run this program.")
+                raiseError("You don't have the required administrative access to run this program.")
 
             # Gotoline logic
             if gotoline is not None:
@@ -75,7 +67,7 @@ def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
                 if command[1] == "requiresadmin":
                     requiresadmin = True
                 else:
-                    raise SyntaxError(f"({linenum}) Invalid tag: ({command[1]})")
+                    raiseError(f"({linenum}) Invalid tag: ({command[1]})")
 
             # Respond
             elif command[0] == "respond":
@@ -85,7 +77,7 @@ def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
                         exec(f"response.append({command[2]})")
                         continue
                     except Exception as e:
-                        raise UnknownException(f"({linenum}) Unknown error: {e}")
+                        raiseError(f"({linenum}) Unknown error: {e}")
                 
                 command = line.split(" ", 1)
                 response.append(command[1])
@@ -128,15 +120,15 @@ def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
                         if not value2.isnumeric():
                             exec(f"value2 = int({value2})")
                     except:
-                        raise MathError(f"({linenum}) Value 1 or value 2 is not an integer, or the variable does not include an integer.")
+                        raiseError(f"({linenum}) Value 1 or value 2 is not an integer, or the variable does not include an integer.")
 
                     exec(f"{storage} = {value1} {operator} {value2}")
                 except IndexError:
-                    raise IndexError(f"({linenum}) Math command is missing arguments")
+                    raiseError(f"({linenum}) Math command is missing arguments")
                 except ArithmeticError:
-                    raise ArithmeticError(f"({linenum}) Math command is invalid")
+                    raiseError(f"({linenum}) Math command is invalid")
                 except Exception as e:
-                    raise UnknownException(f"({linenum}) Unknown error: {e}")
+                    raiseError(f"({linenum}) Unknown error: {e}")
 
             # Conditional stuff
             elif command[0] == "if":
@@ -172,9 +164,9 @@ def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
                         elsenum = int(elsenum)
                 
                 except IndexError:
-                    raise VariableError(f"({linenum}) If command is missing arguments")
+                    raiseError(f"({linenum}) If command is missing arguments")
                 except Exception as e:
-                    raise UnknownException(f"({linenum}) Unknown error: {e}")
+                    raiseError(f"({linenum}) Unknown error: {e}")
 
                 gotoIf = None
                 if elsenum is not None:
@@ -189,7 +181,7 @@ def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
                     goto = int(goto)
                     elsenum = int(elsenum)
                 except ValueError:
-                    raise VariableError(f"({linenum}) Expected goto number to be integer")
+                    raiseError(f"({linenum}) Expected goto number to be integer")
 
                 if gotoIf == "if": # Resulted into the IF (TRUE)
                     gotoline = goto
@@ -206,7 +198,7 @@ def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
                     gotoline = int(command[1])
                     break
                 else:
-                    raise VariableError(f"({linenum}) Expected goto number to be integer")
+                    raiseError(f"({linenum}) Expected goto argument to be integer")
 
             # Functions # TODO
             elif command[0] == "func":
@@ -238,11 +230,11 @@ def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
                         elif posttype == "content":
                             posttype = "content"
                         else:
-                            raise VariableError(f"({linenum}) Unknown posttype")
+                            raiseError(f"({linenum}) Unknown posttype")
                             
                         exec(f"{variable} = {variable}.{posttype}") #FIXME: idk why is it only giving out JsonDecodeError, most likely improper testing?
-                except httpError as e: 
-                    raise httpError(f"({linenum}) This error is here to prevent crashes, you did something wrong: {e}")
+                except Exception as e: 
+                    raiseError(f"({linenum}) This error is here to prevent crashes, you did something wrong: {e}")
 
             # RNG
             elif command[0] == "random":
@@ -250,14 +242,16 @@ def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
                 minimum = command[2]
                 maximum = command[3]
                 if minimum > maximum:
-                    raise VariableError(f"({linenum}) Minimum value is higher than maximum value.")
+                    raiseError(f"({linenum}) Minimum value is higher than maximum value.")
                 exec(f"{storage} = random.randint({minimum}, {maximum})")
 
 
-            # Raise error on unknown commands
+            # Raise an error on unknown commands
             else:
-                raise CommandError(f'({linenum}) Invalid command, "{line}"')
+                raiseError(f'({linenum}) Invalid command, "{line}"')
+            
         if gotoline is None:
             break
-    # Response output V
+
+    # Response output
     queue.put(response)
