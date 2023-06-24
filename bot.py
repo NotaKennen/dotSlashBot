@@ -8,11 +8,21 @@ import asyncio
 
 import os
 import shutil
+import json
 
 print("----------------------------------------------")
 
 def runprogram(ctx, filename, author, mode, arguments: str=None):
-    if mode != "temp" and mode != "permanent":
+    """
+    Runs a program in the compiler:
+
+    Arguments:
+     - Filename: the name of the file, the path is decided by "mode"
+     - Author: the author is for the ID of the author (except in cc mode)
+     - Mode: decides the path to the file
+     - Arguments: arguments to use
+    """
+    if mode != "temp" and mode != "permanent" and mode != "custom":
         raise SyntaxError("Failure in code")
     
     ### Logic ###
@@ -36,6 +46,10 @@ def runprogram(ctx, filename, author, mode, arguments: str=None):
     elif mode == "temp":
         with open(f"temp programs/{author}/{filename}", 'r') as f:
             code = f.read()
+    elif mode == "custom":
+        with open(f"Server commands/{ctx.guild.id}/{author}/{filename}.txt", "r") as f:
+            code = f.read()
+
     code = code.split('\n')
 
     try: # Execution
@@ -98,22 +112,23 @@ async def run_line(ctx, *, line: str=None):
 
 @bot.command(brief="Learn about SlashScript here!")
 async def documentation(ctx):
-    #TODO: Write about RNG and tags, also update command numbers
-    contents = ["Table of contents:\n\n2. SlashScript introduction\n3. Limitations and resources\n4. Basic syntax\n5. Commands\n6. Respond\n7. Var\n8. Math\n9. If\n10. Goto\n11. Exit\n12. request\n13. Administrator access\n14. Sources",
+    contents = ["Table of contents:\n\n2. SlashScript introduction\n3. Limitations and resources\n4. Basic syntax\n5. Commands\n6. Respond\n7. Var\n8. Math\n9. If\n10. Goto\n11. Exit\n12. request\n13. tags\n14. Administrator access\n15. Randomness\n16. Sources",
                 'SlashScript is a small programming "language", or a script as I prefer to call it. The language isnt too big as its not meant to be used for bigger projects, but you can make quite a bit of fun stuff with it.',
                 "Due to the whole language running on a single server, the limitations are quite high. The Maximum runtime of scripts is 120s (to stop infinite loops), and the maximum memory usage is 10 mb (Which is enough to run quite a bit of stuff).",
                 "SlashScript uses a lot of spaces ~~~for smart interactions with users~~ because the developer is too lazy to code proper compiling. Because of this, parenthesis and quotes aren't seen too often.",
-                "SlashScript has a total of 7 commands (as of 22/06/2023), these are: Respond, Var, Math, If, Goto, Exit and request. Each of these commands has a documentation page, feel free to check them.",
+                "SlashScript has a total of 8 commands (as of 24/06/2023), these are: Respond, Var, Math, If, Goto, Exit, random and request. Each of these commands has a documentation page, feel free to check them.",
                 "Respond is the equivalent of Print in python, the syntax is 'respond [message]', the message will appear at the end of execution. If you want to 'print' a variable, you need to use 'respond VAR [variable]', caps is necessary.",
                 "Var works for assigning variables. SlashScript has 3 variable types: int/float, str and bool. The syntax is: 'var [name] [value]'. The type is calculated automatically.",
-                "The math command can do math and turn it into a variable, usage is: 'math [variable] [value1] [operator] [value2]'. The operator can be: +, -, *, /, %",
+                "The math command can do math and turn it into a variable, usage is: 'math [storing-variable] [value1] [operator] [value2]'. The operator can be: +, -, *, /, %",
                 "If is for conditionals. The syntax is: 'if [variable] [operator] [variable] [goto] <elsegoto>'. Goto means the line to go to if the condition is true. Elsegoto means the line to go to if the condition is false, and is optional. The operators are *exactly* like python's.",
                 "Goto is for jumping lines, the syntax is 'goto [line]'",
                 "Exit is as simple as it gets, it exits the program. The syntax is 'exit'",
                 "Request is used to get http requests from the internet. This might be a bit complicated. Syntax: request [method] [url] <decoding> (At the time of writing, it might be a bit broken).",
-                "Some actions (discord commands) may require administrator access from the runner, if you use these commands. You need to add the tag './ requiresadmin' at the start of the file, otherwise it will raise a permissionerror.",
+                'Tags are small "commands" that allow you to tell the compiler things. These can be from accepting arguments to asking for administrator access. You can find the exact tags from the documentation',
+                "Some actions (related to discord) may require administrator access from the runner, if you use these commands. You need to add the tag './ requiresadmin' at the start of the file (or anywhere before you use the commands), otherwise it will raise an error.",
+                "You can generate a random number with the command 'random [storing-variable] [minimum] [maximum]. If the minimum value is bigger than the maximum, it will raise an error.'",
                 "You can find both the bot's and the compiler's source code here: https://github.com/NotaKennen/dotSlashBot. You can DM the developer (Memarios_) with extra questions or ideas."]
-    pages = 14
+    pages = 16
     cur_page = 1
     message = await ctx.send(f"Page {cur_page}/{pages}:\n{contents[cur_page-1]}")
     # getting the message object for editing and reacting
@@ -171,7 +186,7 @@ async def upload_program(ctx, name=None):
         os.makedirs(f"Saved programs/{ctx.author.id}")
     
     shutil.move(name, f"Saved programs/{ctx.author.id}/{name}")
-    await ctx.send("The program has been saved! You can use it via ./program <program name>")
+    await ctx.send(f"The program has been saved! You can use it via ./program {name}")
     
 @bot.command(brief="Delete a program you have saved")
 async def delete_program(ctx, *, name=None):
@@ -195,7 +210,7 @@ async def program(ctx, name: str=None, *, arguments: str=None):
         programstring = ""
         programlist = os.listdir(f'Saved programs/{ctx.author.id}')
         for i in programlist:
-            programstring += i + "\n"
+            programstring += f"- {i}" + "\n"
         await ctx.send(f"You have saved the following programs:\n\n{programstring}\nYou can these programs with ./program <program name>")
 
     # ./program (name) <program name>
@@ -218,7 +233,7 @@ async def run_file(ctx, *, arguments: str=None):
                 os.makedirs(f"temp programs/{ctx.author.id}")
             shutil.move(filename, f"temp programs/{ctx.author.id}/{filename}")
     except Exception as e:
-        await ctx.send(f"The bot had an issue running the program, most likely you forgot to attach the file: {e}")
+        await ctx.send(f"The bot had an issue running the program, most likely you forgot to attach the file:\n {e}")
         return
 
     try:
@@ -227,6 +242,150 @@ async def run_file(ctx, *, arguments: str=None):
         os.remove(f"temp programs/{ctx.author.id}/{filename}") # Remove file
     except Exception as e:
         await ctx.send(response[1])
+
+@bot.command(brief="Make custom commands for this server using SlashScript")
+@commands.has_permissions(administrator=True)
+async def custom_command_create(ctx, name=None, mode: str=None):
+    if name is None:
+        await ctx.send("You need to give the command a name!\nUsage: ./custom_command_create [name] [mode]")
+        return
+    elif mode is None:
+        await ctx.send("You need to specify a mode for the command!\nAvailable modes: e (everyone), a (admins)\nUsage: ./custom_command_create [name] [mode]")
+        return
+    elif mode.lower() != "e" and mode.lower() != "everyone" and mode.lower() != "a" and mode.lower() != "admins":
+        await ctx.send(f"Mode '{mode}' is not a valid mode. The modes are: e (everyone), a (admins)")
+        return
+    
+    try:
+        for attachment in ctx.message.attachments:
+            # Save the file
+            await attachment.save(attachment.filename)
+        filename = attachment.filename
+
+        # Check for missing paths
+        if not os.path.exists(f"Server commands/{ctx.guild.id}/public"):
+            os.makedirs(f"Server commands/{ctx.guild.id}/public")
+        if not os.path.exists(f"Server commands/{ctx.guild.id}/private"):
+            os.makedirs(f"Server commands/{ctx.guild.id}/private")
+
+        # string
+        if mode == "e" or mode == "everyone":
+            mode = "public"
+        elif mode == "a" or mode == "admins":
+            mode = "private"
+
+        # Rename it to match the name
+        os.rename(filename, f"{name}.txt")
+
+        # Move the file to the proper place
+        shutil.move(f"{name}.txt", f"Server commands/{ctx.guild.id}/{mode}/{name}.txt")
+    except Exception as e:
+        await ctx.send(f"The bot had an issue saving the program: \n{e}")
+        return
+    
+    await ctx.send(f"The command has been saved as {name}, you can use the command with ./cc {name}")
+
+@bot.command(brief="Delete a custom command")
+@commands.has_permissions(administrator=True)
+async def custom_command_delete(ctx, name=None):
+    if name is None:
+        await ctx.send("You need to provide a name to delete the program!\nUsage: ./custom_command_delete [name]")
+        return
+    
+    programs = []
+    private_programs = []
+
+    for file in os.listdir(f"Server commands/{ctx.guild.id}/public"):
+        programs.append(file)
+    for file in os.listdir(f"Server commands/{ctx.guild.id}/private"):
+        private_programs.append(file)
+
+    if f"{name}.txt" not in programs and f"{name}.txt" not in private_programs:
+        await ctx.send("A custom command with that name doesn't exist!")
+        return
+    
+    if f"{name}.txt" in programs:
+        os.remove(f"Server commands/{ctx.guild.id}/public/{name}.txt")
+        await ctx.send("The custom command has been deleted")
+    elif f"{name}.txt" in private_programs:
+        os.remove(f"Server commands/{ctx.guild.id}/private/{name}.txt")
+        await ctx.send("The custom command has been deleted")
+    else:
+        await ctx.send("Something went horribly wrong")
+
+@bot.command(brief="Run any of the server's custom commands")
+async def cc(ctx, name: str=None, *, arguments: str=None):
+    # Now we know if admin
+    if ctx.message.author.guild_permissions.administrator:
+        admin = True
+    else:
+        admin = False
+
+    # Makes sure the path exists
+    if not os.path.exists(f"Server commands/{ctx.guild.id}/public"):
+        os.makedirs(f"Server commands/{ctx.guild.id}/public")
+    if not os.path.exists(f"Server commands/{ctx.guild.id}/private"):
+        os.makedirs(f"Server commands/{ctx.guild.id}/private")
+
+    # If name is not input
+    if name is None:
+        programs = []
+
+        try: # Get all the program files
+            for file in os.listdir(f"Server commands/{ctx.guild.id}/public"):
+                programs.append(file)
+            if admin is True:
+                for file in os.listdir(f"Server commands/{ctx.guild.id}/private"):
+                    programs.append(file)
+        except Exception as e:
+            await ctx.send(f"Something went wrong! Most likely you don't have any custom commands:\n{e}")
+            return
+        
+        # remove .txt from the name and make it the programs list
+        templist = []
+        for i in programs:
+            templist.append(os.path.splitext(i))
+        programs = []
+        for i in templist:
+            programs.append(i[0])
+
+        # String fancycating
+        strresponse = "" # Make a string
+        for i in programs: # No lists
+            strresponse += f"- {i}" # Add item to string
+            strresponse += "\n" # Padding
+
+        if strresponse == "":
+            await ctx.send("You don't have any custom commands on this server")
+            return
+
+        await ctx.send(f"You have the following custom commands on your server:\n{strresponse}")
+
+    if name is not None:
+        programs = []
+        private_programs = []
+
+        for file in os.listdir(f"Server commands/{ctx.guild.id}/public"):
+            programs.append(file)
+        if admin is True:
+            for file in os.listdir(f"Server commands/{ctx.guild.id}/private"):
+                private_programs.append(file)
+
+        if f"{name}.txt" not in programs and f"{name}.txt" not in private_programs:
+            await ctx.send("A custom command with that name doesn't exist!")
+            return
+        
+        if f"{name}.txt" in programs:
+            # For some weird reason I decided that the author should be the private/public argument
+            response = runprogram(ctx, name, "public", "custom", arguments)
+            await ctx.send(response[1])
+        elif f"{name}.txt" in private_programs:
+            # see note above
+            response = runprogram(ctx, name, "public", "custom", arguments)
+            await ctx.send(response[1])
+        else:
+            await ctx.send("Something went horribly wrong")
+
 
 ####################################################
 

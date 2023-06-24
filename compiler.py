@@ -20,7 +20,8 @@ def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
     gotoline = None
     response = []
     requiresadmin = False
-    # admin_access = False (default)
+
+    # Compiler loop
     while True:
 
         # Obvious variables
