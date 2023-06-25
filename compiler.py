@@ -3,13 +3,15 @@ import requests # exec() doesn't see it as a needed import, even though it is (?
 from random import randint # Same thing as ^
 import time
 
-def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
+def compile(commandlist, responsequeue, actionqueue, admin_access: bool=False, arguments: list=None):
 
     # Fancier exceptions because the older ones sucked
     def raiseError(error: str):
-        #with queue.mutex:
-            #queue.queue.clear()
-        queue.put(["ERROR LOG", error])
+        with responsequeue.mutex:
+            responsequeue.queue.clear()
+        with actionqueue.mutex:
+            actionqueue.queue.clear()
+        responsequeue.put(["ERROR LOG", error])
         exit()
 
     def checkTimeout(starttime):
@@ -17,6 +19,9 @@ def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
         while True:
             if time.time() > starttime + X:
                 raiseError("The script was taking too long, so it was terminated.")
+
+    def addAction(action: str):
+        actionqueue.put(action)
 
     commands = []
     for i in commandlist:
@@ -254,6 +259,42 @@ def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
                     raiseError(f"({linenum}) Minimum value is higher than maximum value.")
                 exec(f"{storage} = random.randint({minimum}, {maximum})")
 
+            elif command[0] == "discord.channel":
+                if requiresadmin is False:
+                    raiseError("You don't have the required administrative access to run this program.")
+                # Create text channels
+                if command[1] == "create":
+                    if command[2] == "text":
+                        addAction(f"await create_text_channel('{command[3]}')")
+                    elif command[2] == "voice":
+                        addAction(f"await create_voice_channel('{command[3]}')")
+                    else:
+                        raiseError(f"({linenum}) Invalid argument (discord.channel create {command[3]}. (Expected channel type)")
+                
+                # TODO: allow users to delete channels, but find a proper way to do it without them abusing it
+                # most likely use names, error handling hell awaits.
+
+                else: # Invalid arguments on c[1]
+                    raiseError(f"({linenum}) Invalid argument (discord.channel {command[1]}) (expected channel action)")
+
+            elif command[0] == "discord.member":
+                if requiresadmin is False:
+                    raiseError("You don't have the required administrative access to run this program.")
+                if command[1] == "kick":
+                    try:
+                        reason = command[3]
+                    except IndexError:
+                        reason = None
+                    addAction(f"await kick({command[2]}, *, reason={reason})")
+                elif command[1] == "ban":
+                    try:
+                        reason = command[3]
+                    except IndexError:
+                        reason = None
+                    rest = line.split(" ", 2)
+                    addAction(f"await ban({command[2]}, reason={rest})")
+                else:
+                    raiseError(f"({linenum}) Invalid argument (discord.member {command[1]}) (expected member action)")
 
             # Raise an error on unknown commands
             else:
@@ -263,4 +304,4 @@ def compile(commandlist, queue, admin_access: bool=False, arguments: list=None):
             break
 
     # Response output
-    queue.put(response)
+    responsequeue.put(response)

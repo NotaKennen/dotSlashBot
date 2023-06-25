@@ -8,7 +8,6 @@ import asyncio
 
 import os
 import shutil
-import json
 
 print("----------------------------------------------")
 
@@ -53,14 +52,22 @@ def runprogram(ctx, filename, author, mode, arguments: str=None):
     code = code.split('\n')
 
     try: # Execution
-        queue = Queue()
-        programthread = threading.Thread(name=filename, target=compile, args=(code, queue, admin, arguments)) # make thread
+        responsequeue = Queue()
+        actionqueue = Queue()
+        programthread = threading.Thread(name=filename, target=compile, args=(code, responsequeue, actionqueue, admin, arguments)) # make thread
         programthread.start() # Run program
         programthread.join() # Wait for program to finish
-        response = queue.get() # get response
+        response = responsequeue.get() # get response
+        action = actionqueue.get()
 
         if response[0] == "ERROR LOG":
             return [False, f"The program had an issue:\n{response[1]}"]
+        
+        try:
+            for i in action:
+                exec(i)
+        except Exception as e:
+            return [False, f"Something went wrong inside the discord commands, currently the error is unknown, but most likely is due to invalid arguments that weren't handled properly:\n\n {e}"]
         
         # Response fancycating
         strresponse = "" # Make a string
@@ -112,11 +119,12 @@ async def run_line(ctx, *, line: str=None):
 
 @bot.command(brief="Learn about SlashScript here!")
 async def documentation(ctx):
-    contents = ["Table of contents:\n\n2. SlashScript introduction\n3. Limitations and resources\n4. Basic syntax\n5. Commands\n6. Respond\n7. Var\n8. Math\n9. If\n10. Goto\n11. Exit\n12. request\n13. tags\n14. Administrator access\n15. Randomness\n16. Sources",
+    contents = ["Table of contents:\n\n2. SlashScript introduction\n3. Uploading programs\n4. Limitations and resources\n5. Basic syntax\n6. Commands\n7. Respond\n8. Var\n9. Math\n10. If\n11. Goto\n12. Exit\n13. request\n14. tags\n15. Administrator access\n16. Randomness\n17 discord.channel\n18.discord.member\n19. Sources\n\nUpdated last on 25/6/2023",
                 'SlashScript is a small programming "language", or a script as I prefer to call it. The language isnt too big as its not meant to be used for bigger projects, but you can make quite a bit of fun stuff with it.',
+                "Uploading a program is quite easy, you can either use ./upload_program or ./run_file. Using ./upload_program will save the program to ./program, whie ./run_file won't. Make sure to attach a .txt file with the script in it when uploading programs!",
                 "Due to the whole language running on a single server, the limitations are quite high. The Maximum runtime of scripts is 120s (to stop infinite loops and memory hogging). For most basic scripts, this should be fine.",
                 "SlashScript uses a lot of spaces ~~~for smart interactions with users~~ because the developer is too lazy to code proper compiling. Because of this, parenthesis and quotes aren't seen too often.",
-                "SlashScript has a total of 8 commands (as of 24/06/2023), these are: Respond, Var, Math, If, Goto, Exit, random and request. Each of these commands has a documentation page, feel free to check them.",
+                "SlashScript has a total of 10 commands, these are: Respond, Var, Math, If, Goto, Exit, random, discord.channel, discord.member and request. Each of these commands has a documentation page, feel free to check them.",
                 "Respond is the equivalent of Print in python, the syntax is 'respond [message]', the message will appear at the end of execution. If you want to 'print' a variable, you need to use 'respond VAR [variable]', caps is necessary.",
                 "Var works for assigning variables. SlashScript has 3 variable types: int/float, str and bool. The syntax is: 'var [name] [value]'. The type is calculated automatically.",
                 "The math command can do math and turn it into a variable, usage is: 'math [storing-variable] [value1] [operator] [value2]'. The operator can be: +, -, *, /, %",
@@ -127,8 +135,10 @@ async def documentation(ctx):
                 'Tags are small "commands" that allow you to tell the compiler things. These can be from accepting arguments to asking for administrator access. You can find the exact tags from the documentation',
                 "Some actions (related to discord) may require administrator access from the runner, if you use these commands. You need to add the tag './ requiresadmin' at the start of the file (or anywhere before you use the commands), otherwise it will raise an error.",
                 "You can generate a random number with the command 'random [storing-variable] [minimum] [maximum]. If the minimum value is bigger than the maximum, it will raise an error.'",
-                "You can find both the bot's and the compiler's source code here: https://github.com/NotaKennen/dotSlashBot. You can DM the developer (Memarios_) with extra questions or ideas."]
-    pages = 16
+                "(BETA, expect issues) With the discord.channel command you can create channels (more features in the future), the syntax is 'discord.channel create [text/voice] [name]'.",
+                "(BETA, expect issues) discord.member allows you to ban and kick members (more features in the future), the syntax is 'discord.member [ban/kick] [name] <reason>'.",
+                "You can find both the bot's and the compiler's source code here: https://github.com/NotaKennen/dotSlashBot. You can DM the developer (memarios_) with extra questions or ideas."]
+    pages = 19
     cur_page = 1
     message = await ctx.send(f"Page {cur_page}/{pages}:\n{contents[cur_page-1]}")
     # getting the message object for editing and reacting
