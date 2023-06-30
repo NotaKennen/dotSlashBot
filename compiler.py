@@ -12,16 +12,16 @@ def compile(commandlist, responsequeue, actionqueue, admin_access: bool=False, a
         with actionqueue.mutex:
             actionqueue.queue.clear()
         responsequeue.put(["ERROR LOG", error])
+        actionqueue.put(["ERROR LOG", error])
         exit()
 
     def checkTimeout(starttime):
         X = 120
-        while True:
-            if time.time() > starttime + X:
-                raiseError("The script was taking too long, so it was terminated.")
+        if time.time() > starttime + X:
+            raiseError("The script was taking too long, so it was terminated.")
 
     def addAction(action: str):
-        actionqueue.put(action)
+        actionlist.append(action)
 
     commands = []
     for i in commandlist:
@@ -31,6 +31,7 @@ def compile(commandlist, responsequeue, actionqueue, admin_access: bool=False, a
     # Non-resetting obvious variables
     gotoline = None
     response = []
+    actionlist = []
     requiresadmin = False
     starttime = time.time()
 
@@ -304,4 +305,9 @@ def compile(commandlist, responsequeue, actionqueue, admin_access: bool=False, a
             break
 
     # Response output
+    if actionlist == []:
+        actionlist = None
+    actionqueue.put(actionlist)
+    if response == []:
+        response = None
     responsequeue.put(response)

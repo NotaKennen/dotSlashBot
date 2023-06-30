@@ -64,8 +64,9 @@ def runprogram(ctx, filename, author, mode, arguments: str=None):
             return [False, f"The program had an issue:\n{response[1]}"]
         
         try:
-            for i in action:
-                exec(i)
+            if action is not None:
+                for i in action:
+                    exec(i)
         except Exception as e:
             return [False, f"Something went wrong inside the discord commands, currently the error is unknown, but most likely is due to invalid arguments that weren't handled properly:\n\n {e}"]
         
@@ -85,7 +86,7 @@ bot = commands.Bot(command_prefix='./',intents=intents)
 
 @bot.event
 async def on_ready():
-    botactivity = discord.Activity(type=discord.ActivityType.watching, name="you code")
+    botactivity = discord.Activity(type=discord.ActivityType.watching, name="you code [./]")
     await bot.change_presence(activity=botactivity, status=discord.Status.online)
     print('Logged in as')
     print(bot.user.name)
@@ -178,6 +179,9 @@ async def documentation(ctx):
 @bot.command(brief="Upload programs to use for later")
 async def upload_program(ctx, name=None): 
     try:
+        if ctx.message.attachments == []:
+            await ctx.send("You didn't attach the program file, you can't upload an empty program.")
+            return
         for attachment in ctx.message.attachments:
             await attachment.save(attachment.filename)
             filename = attachment.filename
@@ -212,7 +216,7 @@ async def delete_program(ctx, *, name=None):
 
 @bot.command(brief="Run a program you have saved")
 async def program(ctx, name: str=None, *, arguments: str=None):
-    # Only ./program (or ./program self)
+    # Only ./program
     if name is None:
         if not os.path.exists(f"Saved programs/{ctx.author.id}"):
             await ctx.send("You don't have any programs")
@@ -223,11 +227,12 @@ async def program(ctx, name: str=None, *, arguments: str=None):
             programstring += f"- {i}" + "\n"
         await ctx.send(f"You have saved the following programs:\n\n{programstring}\nYou can these programs with ./program <program name>")
 
-    # ./program (name) <program name>
+    # ./program <program name>
     else:
         if os.path.exists(f"Saved programs/{ctx.author.id}/{name}"):
             response = runprogram(ctx, name, ctx.author.id, "permanent", arguments)
             await ctx.send(response[1])
+            return
         else:
             await ctx.send("The program does not exist")
             return
@@ -236,6 +241,9 @@ async def program(ctx, name: str=None, *, arguments: str=None):
 async def run_file(ctx, *, arguments: str=None):
     # Get file from user
     try:
+        if ctx.message.attachments == []:
+            await ctx.send("You didn't attach the program file, you can't run an empty program.")
+            return
         for attachment in ctx.message.attachments:
             await attachment.save(attachment.filename)
             filename = attachment.filename
@@ -396,6 +404,13 @@ async def cc(ctx, name: str=None, *, arguments: str=None):
         else:
             await ctx.send("Something went horribly wrong")
 
+@bot.command(brief="Send feedback!")
+async def feedback(ctx, *, text: str=None):
+    if text is None:
+        await ctx.send("You have to enter feedback to send to me!\nUsage: ./feedback [text]")
+        return
+    channel = bot.get_channel(1048203207932919849)
+    await channel.send(f"New feedback from {ctx.author}!\n\n{text}")
 
 ####################################################
 
