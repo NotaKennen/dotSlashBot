@@ -14,89 +14,97 @@ PROD = False
 print("----------------------------------------------")
 
 def runprogram(ctx, filename, author, mode, arguments: str=None):
-    """
-    Runs a program in the compiler:
+	"""
+	Runs a program in the compiler:
 
-    Arguments:
-     - Filename: the name of the file, the path is decided by "mode"
-     - Author: the author is for the ID of the author (except in cc mode)
-     - Mode: decides the path to the file
-     - Arguments: arguments to use
-    """
-    if mode != "temp" and mode != "permanent" and mode != "custom":
-        raise SyntaxError("Failure in code")
+	Arguments:
+		- Filename: the name of the file, the path is decided by "mode"
+		- Author: the author is for the ID of the author (except in cc mode)
+		- Mode: decides the path to the file
+		- Arguments: arguments to use
+	"""
+	if mode != "temp" and mode != "permanent" and mode != "custom" and mode != "trigger":
+		raise SyntaxError("Failure in code")
     
     ### Logic ###
+	if mode == "trigger":
+		admin = False
+	else:
+		if ctx.message.author.guild_permissions.administrator:
+			admin = True
+		else:
+			admin = False
 
-    if ctx.message.author.guild_permissions.administrator:
-        admin = True
-    else:
-        admin = False
-
-    if arguments is None:
-        arguments = [""]
-    else:
-        arguments = arguments.split(" ")
+	if arguments is None:
+		arguments = []
+	else:
+		arguments = arguments.split(" ")
 
     ### Execution ###
     
     # Ready program for execution
-    if mode == "permanent":
-        with open(f"Saved programs/{author}/{filename}", 'r') as f:
-            code = f.read()
-    elif mode == "temp":
-        with open(f"temp programs/{author}/{filename}", 'r') as f:
-            code = f.read()
-    elif mode == "custom":
-        with open(f"Server commands/{ctx.guild.id}/{author}/{filename}.txt", "r") as f:
-            code = f.read()
+	if mode == "permanent":
+		with open(f"Saved programs/{author}/{filename}", 'r') as f:
+			code = f.read()
+	elif mode == "temp":
+		with open(f"temp programs/{author}/{filename}", 'r') as f:
+			code = f.read()
+	elif mode == "custom":
+		with open(f"Server commands/{ctx.guild.id}/{author}/{filename}.txt", "r") as f:
+			code = f.read()
+	elif mode == "trigger":
+		with open(f"triggers/{ctx.guild.id}/{author}/{filename}", "r") as f:
+			code = f.read()
 
-    code = code.split('\n')
+	code = code.split('\n')
 
-    try: # Execution
-        responsequeue = Queue()
-        actionqueue = Queue()
-        programthread = threading.Thread(name=filename, target=compile, args=(code, responsequeue, actionqueue, admin, arguments)) # make thread
-        programthread.start() # Run program
-        programthread.join() # Wait for program to finish
-        response = responsequeue.get() # get response
-        action = actionqueue.get()
+	try: # Execution
+		responsequeue = Queue()
+		actionqueue = Queue()
+		programthread = threading.Thread(name=filename, target=compile, args=(code, responsequeue, actionqueue, admin, arguments)) # make thread
+		programthread.start() # Run program
+		programthread.join() # Wait for program to finish
+		response = responsequeue.get() # get response
+		action = actionqueue.get()
 
-        if response[0] == "ERROR LOG":
-            return [False, f"The program had an issue:\n{response[1]}"]
-        
-        try:
-            if action is not None:
-                for i in action:
-                    exec(i)
-        except Exception as e:
-            return [False, f"Something went wrong inside the discord commands, currently the error is unknown, but most likely is due to invalid arguments that weren't handled properly:\n\n {e}"]
-        
-        # Response fancycating
-        strresponse = "" # Make a string
-        for i in response: # No lists
-            strresponse += str(i) # Add item to string
-            strresponse += "\n\n" # Padding
+		if response[0] == "ERROR LOG":
+			return [False, f"The program had an issue:\n{response[1]}"]
+		
+		try:
+			if action is not None:
+				for i in action:
+					exec(i)
+		except Exception as e:
+			return [False, f"Something went wrong inside the discord commands, currently the error is unknown, but most likely is due to invalid arguments that weren't handled properly:\n\n {e}\n\nAs of the lates git push, these are fully broken and don't work."]
+		
+		# Response fancycating
+		strresponse = "" # Make a string
+		for i in response: # No lists
+			strresponse += str(i) # Add item to string
+			strresponse += "\n\n" # Padding
 
-        return (True, strresponse)
-    except Exception as e: # Failure catching
-        return (False, f"An internal issue happened:\n{e}")
+		return (True, strresponse)
+	except Exception as e: # Failure catching
+		return (False, f"An internal issue happened:\n{e}")
 
 
 intents = discord.Intents.all()
 if PROD is True:
 	bot = commands.Bot(command_prefix='./',intents=intents)
 else:
-	bot = commands.Bot(command_prefix='./',intents=intents)
+	bot = commands.Bot(command_prefix='b./',intents=intents)
 
 @bot.event
 async def on_ready():
-  botactivity = discord.Activity(type=discord.ActivityType.watching,
-                                 name="you code [./]")
-  await bot.change_presence(activity=botactivity, status=discord.Status.online)
-  print('Logged in as')
-  print(bot.user.name)
-  print('----------------------------------------------')
+	if PROD:
+		botactivity = discord.Activity(type=discord.ActivityType.watching, name="you code [./]")
+	else:
+		botactivity = discord.Activity(type=discord.ActivityType.streaming, name="a beta version of DotSlash")
+
+	await bot.change_presence(activity=botactivity, status=discord.Status.online)
+	print('Logged in as')
+	print(bot.user.name)
+	print('----------------------------------------------')
 
 
 @bot.command(brief="Run a single line of code")
@@ -130,67 +138,67 @@ async def run_line(ctx, *, line: str = None):
 
 @bot.command(brief="Learn about SlashScript here!")
 async def documentation(ctx):
-  contents = [
-    "Table of contents:\n\n2. SlashScript introduction\n3. Uploading programs\n4. Limitations and resources\n5. Basic syntax\n6. Commands\n7. Respond\n8. Var\n9. Math\n10. If\n11. Goto\n12. Exit\n13. request\n14. tags\n15. Administrator access\n16. Randomness\n17 discord.channel\n18.discord.member\n19. Sources\n\nUpdated last on 25/6/2023",
-    'SlashScript is a small programming "language", or a script as I prefer to call it. The language isnt too big as its not meant to be used for bigger projects, but you can make quite a bit of fun stuff with it.',
-    "Uploading a program is quite easy, you can either use ./upload_program or ./run_file. Using ./upload_program will save the program to ./program, whie ./run_file won't. Make sure to attach a .txt file with the script in it when uploading programs!",
-    "Due to the whole language running on a single server, the limitations are quite high. The Maximum runtime of scripts is 120s (to stop infinite loops and memory hogging). For most basic scripts, this should be fine.",
-    "SlashScript uses a lot of spaces ~~~for smart interactions with users~~ because the developer is too lazy to code proper compiling. Because of this, parenthesis and quotes aren't seen too often.",
-    "SlashScript has a total of 10 commands, these are: Respond, Var, Math, If, Goto, Exit, random, discord.channel, discord.member and request. Each of these commands has a documentation page, feel free to check them.",
-    "Respond is the equivalent of Print in python, the syntax is 'respond [message]', the message will appear at the end of execution. If you want to 'print' a variable, you need to use 'respond VAR [variable]', caps is necessary.",
-    "Var works for assigning variables. SlashScript has 3 variable types: int/float, str and bool. The syntax is: 'var [name] [value]'. The type is calculated automatically.",
-    "The math command can do math and turn it into a variable, usage is: 'math [storing-variable] [value1] [operator] [value2]'. The operator can be: +, -, *, /, %",
-    "If is for conditionals. The syntax is: 'if [variable] [operator] [variable] [goto] <elsegoto>'. Goto means the line to go to if the condition is true. Elsegoto means the line to go to if the condition is false, and is optional. The operators are *exactly* like python's.",
-    "Goto is for jumping lines, the syntax is 'goto [line]'",
-    "Exit is as simple as it gets, it exits the program. The syntax is 'exit'",
-    "Request is used to get http requests from the internet. This might be a bit complicated. Syntax: request [method] [url] <decoding> (At the time of writing, it might be a bit broken).",
-    'Tags are small "commands" that allow you to tell the compiler things. These can be from accepting arguments to asking for administrator access. You can find the exact tags from the documentation',
-    "Some actions (related to discord) may require administrator access from the runner, if you use these commands. You need to add the tag './ requiresadmin' at the start of the file (or anywhere before you use the commands), otherwise it will raise an error.",
-    "You can generate a random number with the command 'random [storing-variable] [minimum] [maximum]. If the minimum value is bigger than the maximum, it will raise an error.'",
-    "(BETA, expect issues) With the discord.channel command you can create channels (more features in the future), the syntax is 'discord.channel create [text/voice] [name]'.",
-    "(BETA, expect issues) discord.member allows you to ban and kick members (more features in the future), the syntax is 'discord.member [ban/kick] [name] <reason>'.",
-    "You can find both the bot's and the compiler's source code here: https://github.com/NotaKennen/dotSlashBot. You can DM the developer (memarios_) with extra questions or ideas. I'm currently working on a web-side documentation, but I'm no web developer so it'll take a minute."
-  ]
-  pages = 19
-  cur_page = 1
-  message = await ctx.send(f"Page {cur_page}/{pages}:\n{contents[cur_page-1]}")
-  # getting the message object for editing and reacting
+	contents = [
+		"Table of contents:\n\n2. SlashScript introduction\n3. Uploading programs\n4. Limitations and resources\n5. Basic syntax\n6. Commands\n7. Respond\n8. Var\n9. Math\n10. If\n11. Goto\n12. Exit\n13. request\n14. tags\n15. Administrator access\n16. Randomness\n17 discord.channel\n18.discord.member\n19. Sources\n\nUpdated last on 25/6/2023",
+		'SlashScript is a small programming "language", or a script as I prefer to call it. The language isnt too big as its not meant to be used for bigger projects, but you can make quite a bit of fun stuff with it.',
+		"Uploading a program is quite easy, you can either use ./upload_program or ./run_file. Using ./upload_program will save the program to ./program, whie ./run_file won't. Make sure to attach a .txt file with the script in it when uploading programs!",
+		"Due to the whole language running on a single server, the limitations are quite high. The Maximum runtime of scripts is 120s (to stop infinite loops and memory hogging). For most basic scripts, this should be fine.",
+		"SlashScript uses a lot of spaces, and generally looks a bit like Assembly code. Quotes and parenthesis is really rare, with it sometimes coming up in strings, but otherwise they're practically useless.",
+		"SlashScript has a total of 10 commands, these are: Respond, Var, Math, If, Goto, Exit, random, discord.channel, discord.member and request. Each of these commands has a documentation page, feel free to check them.",
+		"Respond is the equivalent of Print in python, the syntax is 'respond [message]', the message will appear at the end of execution. If you want to 'print' a variable, you need to use 'respond VAR [variable]', caps is necessary.",
+		"Var works for assigning variables. SlashScript has 3 variable types: int/float, str and bool. The syntax is: 'var [name] [value]'. The type is calculated automatically.",
+		"The math command can do math and turn it into a variable, usage is: 'math [storing-variable] [value1] [operator] [value2]'. The operator can be: +, -, *, /, %",
+		"If is for conditionals. The syntax is: 'if [variable] [operator] [variable] [goto] <elsegoto>'. Goto means the line to go to if the condition is true. Elsegoto means the line to go to if the condition is false, and is optional. The operators are *exactly* like python's.",
+		"Goto is for jumping lines, the syntax is 'goto [line]'",
+		"Exit is as simple as it gets, it exits the program. The syntax is 'exit'",
+		"Request is used to get http requests from the internet. This might be a bit complicated. Syntax: request [method] [url] <decoding> (At the time of writing, it might be a bit broken).",
+		'Tags are small "commands" that allow you to tell the compiler things. These can be from accepting arguments to asking for administrator access. You can find the exact tags from the documentation',
+		"Some actions (related to discord) may require administrator access from the runner, if you use these commands. You need to add the tag './ requiresadmin' at the start of the file (or anywhere before you use the commands), otherwise it will raise an error.",
+		"You can generate a random number with the command 'random [storing-variable] [minimum] [maximum]. If the minimum value is bigger than the maximum, it will raise an error.'",
+		"(BETA, expect issues) With the discord.channel command you can create channels (more features in the future), the syntax is 'discord.channel create [text/voice] [name]'.",
+		"You can find both the bot's and the compiler's source code here: https://github.com/NotaKennen/dotSlashBot. You can DM the developer (memarios_) with extra questions or ideas. I'm currently working on a web-side documentation, but I'm no web developer so it'll take a minute."
+	]
+	pages = 19
+	cur_page = 1
+	message = await ctx.send(f"Page {cur_page}/{pages}:\n{contents[cur_page-1]}")
+	# getting the message object for editing and reacting
 
-  await message.add_reaction("◀️")
-  await message.add_reaction("▶️")
+	await message.add_reaction("◀️")
+	await message.add_reaction("▶️")
 
-  def check(reaction, user):
-    return user == ctx.author and str(reaction.emoji) in ["◀️", "▶️"]
-    # This makes sure nobody except the command sender can interact with the "menu"
+	def check(reaction, user):
+		return user == ctx.author and str(reaction.emoji) in ["◀️", "▶️"]
+		# This makes sure nobody except the command sender can interact with the "menu"
 
-  while True:
-    try:
-      reaction, user = await bot.wait_for("reaction_add",
-                                          timeout=60,
-                                          check=check)
-      # waiting for a reaction to be added - times out after x seconds, 60 in this
-      # example
+	while True:
+		try:
+			reaction, user = await bot.wait_for("reaction_add",
+											timeout=60,
+											check=check)
+			# waiting for a reaction to be added - times out after x seconds, 60 in this
+			# example
 
-      if str(reaction.emoji) == "▶️" and cur_page != pages:
-        cur_page += 1
-        await message.edit(
-          content=f"Page {cur_page}/{pages}:\n{contents[cur_page-1]}")
-        await message.remove_reaction(reaction, user)
+			if str(reaction.emoji) == "▶️" and cur_page != pages:
+				cur_page += 1
+				await message.edit(
+				content=f"Page {cur_page}/{pages}:\n{contents[cur_page-1]}")
+				await message.remove_reaction(reaction, user)
 
-      elif str(reaction.emoji) == "◀️" and cur_page > 1:
-        cur_page -= 1
-        await message.edit(
-          content=f"Page {cur_page}/{pages}:\n{contents[cur_page-1]}")
-        await message.remove_reaction(reaction, user)
+			elif str(reaction.emoji) == "◀️" and cur_page > 1:
+				cur_page -= 1
+				await message.edit(
+				content=f"Page {cur_page}/{pages}:\n{contents[cur_page-1]}")
+				await message.remove_reaction(reaction, user)
 
-      else:
-        await message.remove_reaction(reaction, user)
-        # removes reactions if the user tries to go forward on the last page or
-        # backwards on the first page
-    except asyncio.TimeoutError:
-      await message.delete()
-      break
-      # ending the loop if user doesn't react after x seconds
+			else:
+				await message.remove_reaction(reaction, user)
+				# removes reactions if the user tries to go forward on the last page or
+				# backwards on the first page
+		except asyncio.TimeoutError:
+			await message.delete()
+			contents = None
+			break
+			# ending the loop if user doesn't react after x seconds
 
 
 @bot.command(brief="Upload programs to use for later")
@@ -467,11 +475,111 @@ async def feedback(ctx, *, text: str = None):
 	channel = bot.get_channel(1048203207932919849)
 	await channel.send(f"New feedback from {ctx.author}!\n\n{text}")
 
+@bot.command(brief="Create an event which triggers when something happens")
+@commands.has_permissions(administrator=True)
+async def new_trigger(ctx, mode=None, *, name: str=None):
+    
+	if mode is None: # missing mode argument
+		await ctx.send("You have to provide a mode for the trigger, currently available modes are:\n- on_message (Executes script when a new message appears (anywhere) in the guild)\nUsage: ./new_trigger [mode] (name)")
+		return
+
+	if ctx.message.attachments == []: # Missing file
+		await ctx.send("You have to attach a program file to run when the trigger happens.")
+		return
+    
+	# Check for missing folders
+	if not os.path.exists(f"triggers/{ctx.guild.id}/{mode}"):
+		os.makedirs(f"triggers/{ctx.guild.id}/{mode}")
+        
+	try:
+		if ctx.message.attachments == []:
+			await ctx.send("You didn't attach the program file, you can't upload an empty program.")
+			return
+		for attachment in ctx.message.attachments:
+			await attachment.save(attachment.filename)
+			filename = attachment.filename
+	except Exception as e:
+		await ctx.send(f"There was an error uploading the program (Most likely you forgot to attach it)\n\n{e}")
+		return
+        
+	# Checks if a name was input
+	if name is None:
+		name = filename
+	else:
+		os.rename(filename, f"{name}.txt")
+		name += ".txt"
+
+	shutil.move(name, f"triggers/{ctx.guild.id}/{mode}")
+        
+	await ctx.send("The trigger has been created.\nYou can check your triggers with ./triggers")
+
+@bot.command(brief="See your guild's triggers")
+async def triggers(ctx):
+	root = f'triggers/{ctx.guild.id}'
+
+	triggers = []
+
+	for path, subdirs, files in os.walk(root):
+		for name in files:
+			triggers.append(name)
+
+	# Response fancycating
+	triggerstr = "" # Make a string
+	for i in triggers: # No lists
+		triggerstr += f"- {str(i)}" # Add item to string
+		triggerstr += "\n\n" # Padding
+
+	await ctx.send(f"Triggers for this guild:\n{triggerstr}")
+
+@bot.command(brief="Delete triggers")
+@commands.has_permissions(administrator=True)
+async def delete_trigger(ctx, mode: str=None, name: str=None):
+	if name is None:
+		await ctx.send("You need to provide a name to delete the trigger!\nUsage: ./delete_trigger [mode] [name]")
+		return
+	elif mode is None:
+		await ctx.send("You need to provide a mode to delete the trigger! You can see triggers (and their modes) from ./triggers.\nUsage: ./delete_trigger [mode] [name]")
+		return
+	
+	programs = []
+
+	for file in os.listdir(f"triggers/{ctx.guild.id}/{mode}"):
+		programs.append(file)
+
+	if name not in programs:
+		await ctx.send("A trigger with that name (or mode) does not exist!")
+		return
+	else: # Name is in programs
+		os.remove(f"triggers/{ctx.guild.id}/on_message/{name}")
+		await ctx.send("The trigger has been deleted")
+		return
+
+#  An internal issue happened
+
+@bot.event
+async def on_message(message):
+	if message.author.id == 1121295399601319958 or message.author.id == 1017376380033450044:
+		pass # This is the bot's message
+	else:
+		# Check if there are triggers
+		if os.path.exists(f"triggers/{message.guild.id}/on_message"):
+			programs = []
+			# Get programs from the on_message folder
+			for file in os.listdir(f"triggers/{message.guild.id}/on_message"):
+				programs.append(file)
+
+			# run through all the triggers to execute em
+			for i in programs:
+				# Run program
+				response = runprogram(message, i, "on_message", "trigger", None)
+				await message.channel.send(response[1])
+	await bot.process_commands(message) # Run command if message is one
+
 
 ####################################################
 
 if PROD is False:
-	with open("token.txt" , 'r') as f:
+	with open("untoken.txt" , 'r') as f:
 		token = f.read()
 else:
 	token = os.getenv("discord-token")
