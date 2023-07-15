@@ -34,6 +34,7 @@ def compile(commandlist, responsequeue, actionqueue, admin_access: bool=False, a
     actionlist = []
     requiresadmin = False
     starttime = time.time()
+    argumentnumber = 0
 
     # Compiler loop
     while True:
@@ -81,6 +82,10 @@ def compile(commandlist, responsequeue, actionqueue, admin_access: bool=False, a
             elif command[0] == "./":
                 if command[1] == "requiresadmin":
                     requiresadmin = True
+                elif command[1] == "addargument":
+                    argumentvariable = command[2]
+                    exec(f"{argumentvariable} = '{arguments[argumentnumber]}'")
+                    argumentnumber += 1
                 else:
                     raiseError(f"({linenum}) Invalid tag: ({command[1]})")
 
@@ -263,7 +268,7 @@ def compile(commandlist, responsequeue, actionqueue, admin_access: bool=False, a
             # channels
             elif command[0] == "discord.channel":
                 if requiresadmin is False:
-                    raiseError("You don't have the required administrative access to run this program.")
+                    raiseError("You don't have the required administrative access to run this program (or you forgot to add the ./requiresadmin tag)!")
                 # Create text channels
                 if command[1] == "create":
                     if command[2] == "text":

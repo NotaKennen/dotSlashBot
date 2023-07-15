@@ -9,7 +9,8 @@ import asyncio
 import os
 import shutil
 
-PROD = False
+PROD = False # Production environment (bool)
+VERSION = "1.2.0" # Bot version 1.(major).(minor) (String)
 
 print("----------------------------------------------")
 
@@ -154,11 +155,12 @@ async def documentation(ctx):
 		"Request is used to get http requests from the internet. This might be a bit complicated. Syntax: request [method] [url] <decoding> (At the time of writing, it might be a bit broken).",
 		'Tags are small "commands" that allow you to tell the compiler things. These can be from accepting arguments to asking for administrator access. You can find the exact tags from the documentation',
 		"Some actions (related to discord) may require administrator access from the runner, if you use these commands. You need to add the tag './ requiresadmin' at the start of the file (or anywhere before you use the commands), otherwise it will raise an error.",
+		"You can accept arguments from the user with the ./ addargument tag, the proper syntax is './ addargument [storage-variable]'. The arguments are separated by spaces in the running command, and the arguments will be stored in the tag execution order (so if a tag isn't run, it won't save the argument). **All arguments are currently stored as strings!**",
 		"You can generate a random number with the command 'random [storing-variable] [minimum] [maximum]. If the minimum value is bigger than the maximum, it will raise an error.'",
 		"(BETA, expect issues) With the discord.channel command you can create channels (more features in the future), the syntax is 'discord.channel create [text/voice] [name]'.",
-		"You can find both the bot's and the compiler's source code here: https://github.com/NotaKennen/dotSlashBot. You can DM the developer (memarios_) with extra questions or ideas. I'm currently working on a web-side documentation, but I'm no web developer so it'll take a minute."
+		"You can find both the bot's and the compiler's source code here: https://github.com/NotaKennen/dotSlashBot. You can DM the developer (memarios_) with extra questions or ideas, or use the ./feedback command. I'm currently working on a web-side documentation, but I'm no web developer so it'll take a minute."
 	]
-	pages = 19
+	pages = 20
 	cur_page = 1
 	message = await ctx.send(f"Page {cur_page}/{pages}:\n{contents[cur_page-1]}")
 	# getting the message object for editing and reacting
