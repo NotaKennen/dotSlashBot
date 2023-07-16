@@ -5,12 +5,14 @@ from compiler import compile
 import threading
 from queue import Queue
 import asyncio
+import time
 
 import os
 import shutil
 
 PROD = False # Production environment (bool)
 VERSION = "1.2.1" # Bot version 1.(major).(minor) (String)
+STARTTIME = time.time()
 
 if PROD == True:
 	# The funny
@@ -499,6 +501,7 @@ async def feedback(ctx, *, text: str = None):
 	channel = bot.get_channel(1048203207932919849)
 	await channel.send(f"New feedback from {ctx.author}!\n\n{text}")
 
+
 @bot.command(brief="Create an event which triggers when something happens")
 @commands.has_permissions(administrator=True)
 async def new_trigger(ctx, mode=None, *, name: str=None):
@@ -537,6 +540,7 @@ async def new_trigger(ctx, mode=None, *, name: str=None):
         
 	await ctx.send("The trigger has been created.\nYou can check your triggers with ./triggers")
 
+
 @bot.command(brief="See your guild's triggers")
 async def triggers(ctx):
 	root = f'triggers/{ctx.guild.id}'
@@ -554,6 +558,7 @@ async def triggers(ctx):
 		triggerstr += "\n\n" # Padding
 
 	await ctx.send(f"Triggers for this guild:\n{triggerstr}")
+
 
 @bot.command(brief="Delete triggers")
 @commands.has_permissions(administrator=True)
@@ -578,7 +583,6 @@ async def delete_trigger(ctx, mode: str=None, name: str=None):
 		await ctx.send("The trigger has been deleted")
 		return
 
-#  An internal issue happened
 
 @bot.event
 async def on_message(message):
@@ -599,6 +603,13 @@ async def on_message(message):
 				await message.channel.send(response[1])
 	await bot.process_commands(message) # Run command if message is one
 
+@bot.command()
+@commands.is_owner()
+async def uptime(ctx):
+	seconds = time.time() - STARTTIME
+	minutes = seconds / 60
+	hours = minutes / 60
+	await ctx.send(f"The bot has been up for:\n{round(hours, 3)} hours\n{round(minutes, 1)} minutes\n{round(seconds)} seconds\n\nBot latency: {round(bot.latency*1000)} ms")
 
 ####################################################
 
