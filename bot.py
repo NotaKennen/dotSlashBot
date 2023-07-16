@@ -11,7 +11,7 @@ import os
 import shutil
 
 PROD = False # Production environment (bool)
-VERSION = "1.2.1" # Bot version 1.(major).(minor) (String)
+VERSION = "1.2.5" # Bot version 1.(major).(minor) (String)
 STARTTIME = time.time()
 
 if PROD == True:
@@ -556,6 +556,9 @@ async def triggers(ctx):
 	for i in triggers: # No lists
 		triggerstr += f"- {str(i)}" # Add item to string
 		triggerstr += "\n\n" # Padding
+
+	if triggerstr == "":
+		await ctx.send("This guild does not have any triggers.")
 
 	await ctx.send(f"Triggers for this guild:\n{triggerstr}")
 
