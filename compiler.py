@@ -83,8 +83,12 @@ def compile(commandlist, responsequeue, actionqueue, admin_access: bool=False, a
                 if command[1] == "requiresadmin":
                     requiresadmin = True
                 elif command[1] == "addargument":
+                    
                     argumentvariable = command[2]
-                    exec(f"{argumentvariable} = '{arguments[argumentnumber]}'")
+                    try:
+                        exec(f"{argumentvariable} = '{arguments[argumentnumber]}'")
+                    except:
+                        raiseError(f"({linenum}) Not enough arguments were given!")
                     argumentnumber += 1
                 else:
                     raiseError(f"({linenum}) Invalid tag: ({command[1]})")
@@ -220,7 +224,7 @@ def compile(commandlist, responsequeue, actionqueue, admin_access: bool=False, a
                 else:
                     raiseError(f"({linenum}) Expected goto argument to be integer")
 
-            # Functions # TODO
+            # Functions # TODO (legit never happening lol)
             elif command[0] == "func":
                 funcname = command[1]
 

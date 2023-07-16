@@ -174,7 +174,7 @@ async def documentation(ctx):
 		"If is for conditionals. The syntax is: 'if [variable] [operator] [variable] [goto] <elsegoto>'. Goto means the line to go to if the condition is true. Elsegoto means the line to go to if the condition is false, and is optional. The operators are *exactly* like python's.",
 		"Goto is for jumping lines, the syntax is 'goto [line]'",
 		"Exit is as simple as it gets, it exits the program. The syntax is 'exit'",
-		"Request is used to get http requests from the internet. This might be a bit complicated. Syntax: request [method] [url] <decoding> (At the time of writing, it might be a bit broken).",
+		"Request is used to get http requests from the internet. This might be a bit complicated. Syntax: request [method] [url] <decoding> (At the time of writing, it might be a bit broken, but could also be due to incorrect testing).",
 		'Tags are small "commands" that allow you to tell the compiler things. These can be from accepting arguments to asking for administrator access. You can find the exact tags from the documentation',
 		"Some actions (related to discord) may require administrator access from the runner, if you use these commands. You need to add the tag './ requiresadmin' at the start of the file (or anywhere before you use the commands), otherwise it will raise an error.",
 		"You can accept arguments from the user with the ./ addargument tag, the proper syntax is './ addargument [storage-variable]'. The arguments are separated by spaces in the running command, and the arguments will be stored in the tag execution order (so if a tag isn't run, it won't save the argument). **All arguments are currently stored as strings!**",
