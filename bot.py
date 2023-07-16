@@ -12,6 +12,28 @@ import shutil
 PROD = False # Production environment (bool)
 VERSION = "1.2.1" # Bot version 1.(major).(minor) (String)
 
+if PROD == True:
+	# The funny
+	from flask import Flask
+	from threading import Thread
+
+	app = Flask('') 
+
+	@ app.route('/')
+	def main():
+		return "DotSlash is online"
+
+
+	def run():
+		app.run(host="0.0.0.0", port=8000)
+
+
+	def keep_alive():
+		server = Thread(target=run)
+		server.start()
+
+	keep_alive()
+
 print("----------------------------------------------")
 
 def runprogram(ctx, filename, author, mode, arguments: str=None):
@@ -140,7 +162,7 @@ async def run_line(ctx, *, line: str = None):
 @bot.command(brief="Learn about SlashScript here!")
 async def documentation(ctx):
 	contents = [
-		"Table of contents:\n\n2. SlashScript introduction\n3. Uploading programs\n4. Limitations and resources\n5. Basic syntax\n6. Commands\n7. Respond\n8. Var\n9. Math\n10. If\n11. Goto\n12. Exit\n13. request\n14. tags\n15. Administrator access\n16. Arguments\n17. Randomness\n18. discord.channel\n\n19. Sources\n\nUpdated last on 15/7/2023",
+		"Table of contents:\n\n2. SlashScript introduction\n3. Uploading programs\n4. Limitations and resources\n5. Basic syntax\n6. Commands\n7. Respond\n8. Var\n9. Math\n10. If\n11. Goto\n12. Exit\n13. request\n14. tags\n15. Administrator access\n16. Arguments\n17. Randomness\n18. discord.channel\n\n19. Sources\n\nUpdated last on 16/7/2023",
 		'SlashScript is a small programming "language", or a script as I prefer to call it. The language isnt too big as its not meant to be used for bigger projects, but you can make quite a bit of fun stuff with it.',
 		"Uploading a program is quite easy, you can either use ./upload_program or ./run_file. Using ./upload_program will save the program to ./program, whie ./run_file won't. Make sure to attach a .txt file with the script in it when uploading programs!",
 		"Due to the whole language running on a single server, the limitations are quite high. The Maximum runtime of scripts is 120s (to stop infinite loops and memory hogging). For most basic scripts, this should be fine.",
@@ -160,7 +182,7 @@ async def documentation(ctx):
 		"(BETA, expect issues) With the discord.channel command you can create channels (more features in the future), the syntax is 'discord.channel create [text/voice] [name]'.",
 		"You can find both the bot's and the compiler's source code here: https://github.com/NotaKennen/dotSlashBot. You can DM the developer (memarios_) with extra questions or ideas, or use the ./feedback command. I'm currently working on a web-side documentation, but I'm no web developer so it'll take a minute."
 	]
-	pages = 20
+	pages = 19
 	cur_page = 1
 	message = await ctx.send(f"Page {cur_page}/{pages}:\n{contents[cur_page-1]}")
 	# getting the message object for editing and reacting
