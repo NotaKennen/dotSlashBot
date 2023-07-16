@@ -463,8 +463,7 @@ async def cc(ctx, name: str = None, *, arguments: str = None):
 			await ctx.send("You don't have any custom commands on this server")
 			return
 
-	await ctx.send(
-	f"You have the following custom commands on your server:\n{strresponse}")
+		await ctx.send(f"You have the following custom commands on your server:\n{strresponse}")
 
 	if name is not None:
 		programs = []
@@ -486,7 +485,7 @@ async def cc(ctx, name: str = None, *, arguments: str = None):
 			await ctx.send(response[1])
 		elif f"{name}.txt" in private_programs:
 			# see note above
-			response = runprogram(ctx, name, "public", "custom", arguments)
+			response = runprogram(ctx, name, "private", "custom", arguments)
 			await ctx.send(response[1])
 		else:
 			await ctx.send("Something went horribly wrong")
