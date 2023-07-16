@@ -11,7 +11,7 @@ import os
 import shutil
 
 PROD = False # Production environment (bool)
-VERSION = "1.2.5" # Bot version 1.(major).(minor) (String)
+VERSION = "1.2.6" # Bot version 1.(major).(minor) (String)
 STARTTIME = time.time()
 
 if PROD == True:
@@ -164,7 +164,7 @@ async def run_line(ctx, *, line: str = None):
 @bot.command(brief="Learn about SlashScript here!")
 async def documentation(ctx):
 	contents = [
-		"Table of contents:\n\n2. SlashScript introduction\n3. Uploading programs\n4. Limitations and resources\n5. Basic syntax\n6. Commands\n7. Respond\n8. Var\n9. Math\n10. If\n11. Goto\n12. Exit\n13. request\n14. tags\n15. Administrator access\n16. Arguments\n17. Randomness\n18. discord.channel\n\n19. Sources\n\nUpdated last on 16/7/2023",
+		"Table of contents:\n\n2. SlashScript introduction\n3. Uploading programs\n4. Limitations and resources\n5. Basic syntax\n6. Commands\n7. Respond\n8. Var\n9. Math\n10. If\n11. Goto\n12. Exit\n13. request\n14. tags\n15. Administrator access\n16. Arguments\n17. Randomness\n18. discord.channel\n19. Sources\n\nUpdated last on 16/7/2023",
 		'SlashScript is a small programming "language", or a script as I prefer to call it. The language isnt too big as its not meant to be used for bigger projects, but you can make quite a bit of fun stuff with it.',
 		"Uploading a program is quite easy, you can either use ./upload_program or ./run_file. Using ./upload_program will save the program to ./program, whie ./run_file won't. Make sure to attach a .txt file with the script in it when uploading programs!",
 		"Due to the whole language running on a single server, the limitations are quite high. The Maximum runtime of scripts is 120s (to stop infinite loops and memory hogging). For most basic scripts, this should be fine.",
@@ -559,6 +559,7 @@ async def triggers(ctx):
 
 	if triggerstr == "":
 		await ctx.send("This guild does not have any triggers.")
+		return
 
 	await ctx.send(f"Triggers for this guild:\n{triggerstr}")
 
@@ -612,7 +613,7 @@ async def uptime(ctx):
 	seconds = time.time() - STARTTIME
 	minutes = seconds / 60
 	hours = minutes / 60
-	await ctx.send(f"The bot has been up for:\n{round(hours, 3)} hours\n{round(minutes, 1)} minutes\n{round(seconds)} seconds\n\nBot latency: {round(bot.latency*1000)} ms")
+	await ctx.send(f"The bot has been up for:\n{round(hours, 3)} hours\n{round(minutes, 1)} minutes\n{round(seconds)} seconds\n\nBot latency: {round(bot.latency*1000)} ms\n\nRunning version {VERSION}")
 
 ####################################################
 
