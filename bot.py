@@ -11,7 +11,7 @@ import os
 import shutil
 
 PROD = False # Production environment (bool)
-VERSION = "1.2.8" # Bot version 1.(major).(minor) (String)
+VERSION = "1.2.8.5" # Bot version 1.(major).(minor) (String)
 STARTTIME = time.time()
 
 if PROD == True:
@@ -570,10 +570,15 @@ async def on_message(message):
 
 @bot.command(brief="Small stats for the bot")
 async def uptime(ctx):
-	seconds = time.time() - STARTTIME
-	minutes = seconds / 60
-	hours = minutes / 60
-	await ctx.send(f"The bot has been up for:\n{round(hours, 3)} hours\n{round(minutes, 1)} minutes\n{round(seconds)} seconds\n\nBot latency: {round(bot.latency*1000)} ms\n\nRunning version {VERSION}")
+	timer = time.time() - STARTTIME
+	unit = "seconds"
+	if timer > 120:
+		timer = timer / 60
+		unit = "minutes"
+	if timer > 60:
+		timer = timer / 60
+		unit = "hours"
+	await ctx.send(f"The bot has been up for:\n{round(timer,1)} {unit}\n\nBot latency: {round(bot.latency*1000)} ms\n\nRunning version {VERSION}")
 
 ####################################################
 
