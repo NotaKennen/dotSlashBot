@@ -11,7 +11,7 @@ import os
 import shutil
 
 PROD = False # Production environment (bool)
-VERSION = "1.2.6" # Bot version 1.(major).(minor) (String)
+VERSION = "1.2.7" # Bot version 1.(major).(minor) (String)
 STARTTIME = time.time()
 
 if PROD == True:
@@ -90,17 +90,10 @@ def runprogram(ctx, filename, author, mode, arguments: str=None):
 		programthread.start() # Run program
 		programthread.join() # Wait for program to finish
 		response = responsequeue.get() # get response
-		action = actionqueue.get()
+		action = actionqueue.get() # TODO: Fix and make a proper function some day?
 
 		if response[0] == "ERROR LOG":
 			return [False, f"The program had an issue:\n{response[1]}"]
-		
-		try:
-			if action is not None:
-				for i in action:
-					exec(i)
-		except Exception as e:
-			return [False, f"Something went wrong inside the discord commands, currently the error is unknown, but most likely is due to invalid arguments that weren't handled properly:\n\n {e}\n\nAs of the lates git push, these are fully broken and don't work."]
 		
 		# Response fancycating
 		strresponse = "" # Make a string
@@ -130,35 +123,6 @@ async def on_ready():
 	print('Logged in as')
 	print(bot.user.name)
 	print('----------------------------------------------')
-
-
-@bot.command(brief="Run a single line of code")
-async def run_line(ctx, *, line: str = None):
-  if line is None:
-    await ctx.send("Usage: ./run_line (code)")
-    return
-  line = line.split("\n")
-
-  if ctx.message.author.guild_permissions.administrator:
-    admin = True
-  else:
-    admin = False
-
-  queue = Queue()
-  programthread = threading.Thread(name=ctx.author,
-                                   target=compile,
-                                   args=(line, queue, admin))  # make thread
-  programthread.start()  # Run program
-  programthread.join()  # Wait for program to finish
-  response = queue.get()  # get response
-
-  # Response fancycating
-  strresponse = ""  # Make a string
-  for i in response:  # No lists
-    strresponse += str(i)
-    strresponse += "\n\n"
-
-  await ctx.send(strresponse)
 
 
 @bot.command(brief="Learn about SlashScript here!")
@@ -275,27 +239,25 @@ async def delete_program(ctx, *, name=None):
 @bot.command(brief="Run a program you have saved")
 async def program(ctx, name: str = None, *, arguments: str = None):
   # Only ./program
-  if name is None:
-    if not os.path.exists(f"Saved programs/{ctx.author.id}"):
-      await ctx.send("You don't have any programs")
-      return
-    programstring = ""
-    programlist = os.listdir(f'Saved programs/{ctx.author.id}')
-    for i in programlist:
-      programstring += f"- {i}" + "\n"
-    await ctx.send(
-      f"You have saved the following programs:\n\n{programstring}\nYou can these programs with ./program <program name>"
-    )
+	if name is None:
+		if not os.path.exists(f"Saved programs/{ctx.author.id}"):
+			await ctx.send("You don't have any programs")
+			return
+		
+		programstring = "" # V
+		programlist = os.listdir(f'Saved programs/{ctx.author.id}')
+		for i in programlist: # Anti-listificator
+			programstring += f"- {i}" + "\n"
+			await ctx.send(f"You have saved the following programs:\n\n{programstring}\nYou can these programs with ./program <program name>")
 
-  # ./program <program name>
-  else:
-    if os.path.exists(f"Saved programs/{ctx.author.id}/{name}"):
-      response = runprogram(ctx, name, ctx.author.id, "permanent", arguments)
-      await ctx.send(response[1])
-      return
-    else:
-      await ctx.send("The program does not exist")
-      return
+	# ./program <program name>
+	else:
+		if os.path.exists(f"Saved programs/{ctx.author.id}/{name}"):
+			response = runprogram(ctx, name, ctx.author.id, "permanent", arguments)
+			await ctx.send(response[1])
+		else:
+			await ctx.send("The program does not exist")
+			return
 
 
 @bot.command(brief="Run a program without saving it")
@@ -606,8 +568,8 @@ async def on_message(message):
 				await message.channel.send(response[1])
 	await bot.process_commands(message) # Run command if message is one
 
+
 @bot.command()
-@commands.is_owner()
 async def uptime(ctx):
 	seconds = time.time() - STARTTIME
 	minutes = seconds / 60

@@ -271,8 +271,10 @@ def compile(commandlist, responsequeue, actionqueue, admin_access: bool=False, a
 
             # channels
             elif command[0] == "discord.channel":
+                # Admin check
                 if requiresadmin is False:
                     raiseError("You don't have the required administrative access to run this program (or you forgot to add the ./requiresadmin tag)!")
+                
                 # Create text channels
                 if command[1] == "create":
                     if command[2] == "text":
@@ -300,5 +302,5 @@ def compile(commandlist, responsequeue, actionqueue, admin_access: bool=False, a
         actionlist = None
     actionqueue.put(actionlist)
     if response == []:
-        response = "(No response) The program ran succesfully"
+        response = ["(No response) The program ran succesfully"]
     responsequeue.put(response)
