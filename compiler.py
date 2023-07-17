@@ -228,6 +228,10 @@ def compile(commandlist, responsequeue, actionqueue, admin_access: bool=False, a
             elif command[0] == "func":
                 funcname = command[1]
 
+            # Run a function
+            elif command[0] == ":f":
+                pass
+
             # Exit
             elif command[0] == "exit":
                 gotoline = None
@@ -239,26 +243,28 @@ def compile(commandlist, responsequeue, actionqueue, admin_access: bool=False, a
                     variable = command[1]
                     rtype = command[2]
                     address = command[3]
-                    posttype = None
                     try:
-                        posttype = command[4]
+                        decodetype = command[4]
                     except IndexError:
-                        posttype = None
+                        decodetype = None
 
                     exec(f"{variable} = requests.{rtype}('{address}')")
-                    if posttype is not None:
-                        if posttype == "json":
-                            posttype = "json()"
-                        elif posttype == "text": # I know this here sucks
-                            posttype = "text"
-                        elif posttype == "content":
-                            posttype = "content"
+                    if decodetype is not None:
+                        if decodetype == "json":
+                            decodetype = "json()"
+                        elif decodetype == "text": # I know this here sucks
+                            decodetype = "text"
+                        elif decodetype == "content":
+                            decodetype = "content"
                         else:
-                            raiseError(f"({linenum}) Unknown posttype")
-                            
-                        exec(f"{variable} = {variable}.{posttype}") #FIXME: idk why is it only giving out JsonDecodeError, most likely improper testing?
-                except Exception as e: 
-                    raiseError(f"({linenum}) This error is here to prevent crashes, you did something wrong: {e}")
+                            raiseError(f"({linenum}) Unknown decodetype")
+                        
+                        try:
+                            exec(f"{variable} = {variable}.{decodetype}") #FIXME: idk why is it only giving out JsonDecodeError, most likely improper testing?
+                        except Exception as e:
+                            raiseError(f"({linenum}) Incorrect decode type: {e}")
+                except Exception as e:
+                    raiseError(f"({linenum}) The request had an error: {e}")
 
             # RNG
             elif command[0] == "random":
@@ -269,7 +275,7 @@ def compile(commandlist, responsequeue, actionqueue, admin_access: bool=False, a
                     raiseError(f"({linenum}) Minimum value is higher than maximum value.")
                 exec(f"{storage} = random.randint({minimum}, {maximum})")
 
-            # channels
+            # channels (not on prod, find a proper way for actionqueue)
             elif command[0] == "discord.channel":
                 # Admin check
                 if requiresadmin is False:
@@ -284,7 +290,7 @@ def compile(commandlist, responsequeue, actionqueue, admin_access: bool=False, a
                     else:
                         raiseError(f"({linenum}) Invalid argument (discord.channel create {command[3]}. (Expected channel type (text/voice))")
                 
-                # TODO: allow users to delete channels, but find a proper way to do it without them abusing it
+                # tODO: allow users to delete channels, but find a proper way to do it without them abusing it
                 # most likely use names, error handling hell awaits.
 
                 else: # Invalid arguments on c[1]

@@ -11,7 +11,7 @@ import os
 import shutil
 
 PROD = False # Production environment (bool)
-VERSION = "1.2.7" # Bot version 1.(major).(minor) (String)
+VERSION = "1.2.8" # Bot version 1.(major).(minor) (String)
 STARTTIME = time.time()
 
 if PROD == True:
@@ -568,7 +568,7 @@ async def on_message(message):
 	await bot.process_commands(message) # Run command if message is one
 
 
-@bot.command()
+@bot.command(brief="Small stats for the bot")
 async def uptime(ctx):
 	seconds = time.time() - STARTTIME
 	minutes = seconds / 60
