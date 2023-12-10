@@ -3,5 +3,7 @@ Dotslash is a bot in Discord which allows server owners to make their own comman
 
 ### invites
 [Basic permissions](https://discord.com/api/oauth2/authorize?client_id=1183430549189165116&permissions=2048&scope=bot)
+
 [Administrator permissions](https://discord.com/api/oauth2/authorize?client_id=1183430549189165116&permissions=8&scope=bot)
+
 The bot doesn't really need Administrator, but it's useful in case some new features get added.
