@@ -1,312 +1,321 @@
-from queue import Queue
-import requests # exec() doesn't see it as a needed import, even though it is (?)
-from random import randint # Same thing as ^
-import time
+import re 
+from time import time
 
-def compile(commandlist, responsequeue, actionqueue, admin_access: bool=False, arguments: list=None):
+def tokenize(code):
+    """Makes the code into nice little lists that the compiler can handle"""
+    def splitBySpace(input_string):
+        """Splits the string by spaces, except for all the spaces inside double quotes"""
+        result = []
+        current_word = ""
+        inside_quotes = False
 
-    # Fancier exceptions because the older ones sucked
-    def raiseError(error: str):
-        with responsequeue.mutex:
-            responsequeue.queue.clear()
-        with actionqueue.mutex:
-            actionqueue.queue.clear()
-        responsequeue.put(["ERROR LOG", error])
-        actionqueue.put(["ERROR LOG", error])
-        exit()
-
-    def checkTimeout(starttime):
-        X = 120
-        if time.time() > starttime + X:
-            raiseError("The script was taking too long, so it was terminated.")
-
-    def addAction(action: str):
-        actionlist.append(action)
-
-    commands = []
-    for i in commandlist:
-        i = i.replace("\n", "")
-        commands.append(i)
-
-    # Non-resetting obvious variables
-    gotoline = None
-    response = []
-    actionlist = []
-    requiresadmin = False
-    starttime = time.time()
-    argumentnumber = 0
-
-    # Compiler loop
-    while True:
-        # Obvious variables
-        linenum = 0
-        skipline = False
-
-        # Command runner
-        for line in commands:
-            checkTimeout(starttime)
-
-            # linenum + and command split 
-            linenum += 1
-            command = line.split(" ")
-
-            ### LOGIC ###
- 
-            # Admin logic
-            if requiresadmin == True and admin_access == False:
-                raiseError("You don't have the required administrative access to run this program.")
-
-            # Gotoline logic
-            if gotoline is not None:
-                if gotoline > linenum:
-                    skipline = True
-                elif gotoline == linenum:
-                    skipline = False
-                    gotoline = None
-                elif gotoline < linenum:
-                    break
-            if skipline is True:
-                continue
-
-            ### COMMANDS ###
-
-            # Empty line
-            if command == ['']:
-                continue
-
-            # Comment
-            elif command[0] == "#" or command[0] == "//":
-                continue
-
-            # tags
-            elif command[0] == "./":
-                if command[1] == "requiresadmin":
-                    requiresadmin = True
-                elif command[1] == "addargument":
-                    
-                    argumentvariable = command[2]
-                    try:
-                        exec(f"{argumentvariable} = '{arguments[argumentnumber]}'")
-                    except:
-                        raiseError(f"({linenum}) Not enough arguments were given!")
-                    argumentnumber += 1
-                else:
-                    raiseError(f"({linenum}) Invalid tag: ({command[1]})")
-
-            # Respond
-            elif command[0] == "respond":
-
-                if command[1] == "VAR": # User prints variable
-                    try:
-                        exec(f"response.append({command[2]})")
-                        continue
-                    except Exception as e:
-                        raiseError(f"({linenum}) Unknown error: {e}")
-                
-                command = line.split(" ", 1)
-                response.append(command[1])
-                continue
-
-            # Variable handling
-            elif command[0] == "var":
-                varname = command[1]
-                varvalue = command[2]
-
-                if varvalue == "True" or varvalue == "False": # Value is bool
-                    if varvalue == "True":
-                        varvalue = True
-                    else:
-                        varvalue = False
-
-                elif varvalue.isnumeric(): # Value is int
-                    varvalue = int(varvalue)
-
-                else: # Value is string
-                    varvalue = str(line.split(" ", 2)[2])
-                    exec(f'{varname} = str("{varvalue}")')
-                    continue
-
-                exec(f"{varname} = {varvalue}")
-                continue
-
-            # Simple math 
-            elif command[0] == "math":
-                try:
-                    storage = command[1]
-                    value1 = command[2]
-                    operator = command[3]
-                    value2 = command[4]
-
-                    # Variable acceptance
-                    try:
-                        if not value1.isnumeric():
-                            exec(f"value1 = int({value1})")
-                        if not value2.isnumeric():
-                            exec(f"value2 = int({value2})")
-                    except:
-                        raiseError(f"({linenum}) Value 1 or value 2 is not an integer, or the variable does not include an integer.")
-
-                    exec(f"{storage} = {value1} {operator} {value2}")
-                except IndexError:
-                    raiseError(f"({linenum}) Math command is missing arguments")
-                except ArithmeticError:
-                    raiseError(f"({linenum}) Math command is invalid")
-                except Exception as e:
-                    raiseError(f"({linenum}) Unknown error: {e}")
-
-            # Conditional stuff
-            elif command[0] == "if":
-                try:
-                    # Get operators and other variables
-                    op1 = command[1]
-                    condition = command[2]
-                    op2 = command[3]
-                    goto = command[4]
-                    try: # Else goto line number
-                        elsenum = command[5]
-                    except IndexError:
-                        elsenum = None
-
-                    # if op1 or op2 are variables: if (variable)
-                    if not op1.isnumeric():
-                        exec(f"op1 = {command[1]}")
-                    else:
-                        op1 = int(op1)
-                    if not op2.isnumeric():
-                        exec(f"op2 = {command[3]}")
-                    else:
-                        op2 = int(op2)
-
-                    # if goto or else are variables
-                    if not goto.isnumeric():
-                        exec(f"goto = {command[1]}")
-                    else:
-                        goto = int(goto)
-                    if not elsenum.isnumeric():
-                        exec(f"elsenum = {command[3]}")
-                    else:
-                        elsenum = int(elsenum)
-                
-                except IndexError:
-                    raiseError(f"({linenum}) If command is missing arguments")
-                except Exception as e:
-                    raiseError(f"({linenum}) Unknown error: {e}")
-
-                gotoIf = None
-                if elsenum is not None:
-                    exec(f'if {op1} {condition} {op2}: gotoIf = "if"')
-                    if gotoIf is None:
-                        gotoIf = "else"
-                else:
-                    exec(f"if {op1} {condition} {op2}: gotoIf = 'if'")
-
-                # If not int
-                try:
-                    goto = int(goto)
-                    elsenum = int(elsenum)
-                except ValueError:
-                    raiseError(f"({linenum}) Expected goto number to be integer")
-
-                if gotoIf == "if": # Resulted into the IF (TRUE)
-                    gotoline = goto
-                elif gotoIf == "else": # Resulted into the ELSE (FALSE)
-                    gotoline = elsenum
-                else: # FALSE But no else
-                    continue
-                break # Go to line break
-                # Go to line
-
-            # Goto line
-            elif command[0] == "goto":
-                if command[1].isnumeric():
-                    gotoline = int(command[1])
-                    break
-                else:
-                    raiseError(f"({linenum}) Expected goto argument to be integer")
-
-            # Functions # TODO (legit never happening lol)
-            elif command[0] == "func":
-                funcname = command[1]
-
-            # Run a function
-            elif command[0] == ":f":
-                pass
-
-            # Exit
-            elif command[0] == "exit":
-                gotoline = None
-                break
-
-            # Http request
-            elif command[0] == "request":
-                try:
-                    variable = command[1]
-                    rtype = command[2]
-                    address = command[3]
-                    try:
-                        decodetype = command[4]
-                    except IndexError:
-                        decodetype = None
-
-                    exec(f"{variable} = requests.{rtype}('{address}')")
-                    if decodetype is not None:
-                        if decodetype == "json":
-                            decodetype = "json()"
-                        elif decodetype == "text": # I know this here sucks
-                            decodetype = "text"
-                        elif decodetype == "content":
-                            decodetype = "content"
-                        else:
-                            raiseError(f"({linenum}) Unknown decodetype")
-                        
-                        try:
-                            exec(f"{variable} = {variable}.{decodetype}") #FIXME: idk why is it only giving out JsonDecodeError, most likely improper testing?
-                        except Exception as e:
-                            raiseError(f"({linenum}) Incorrect decode type: {e}")
-                except Exception as e:
-                    raiseError(f"({linenum}) The request had an error: {e}")
-
-            # RNG
-            elif command[0] == "random":
-                storage = command[1]
-                minimum = command[2]
-                maximum = command[3]
-                if minimum > maximum:
-                    raiseError(f"({linenum}) Minimum value is higher than maximum value.")
-                exec(f"{storage} = random.randint({minimum}, {maximum})")
-
-            # channels (not on prod, find a proper way for actionqueue)
-            elif command[0] == "discord.channel":
-                # Admin check
-                if requiresadmin is False:
-                    raiseError("You don't have the required administrative access to run this program (or you forgot to add the ./requiresadmin tag)!")
-                
-                # Create text channels
-                if command[1] == "create":
-                    if command[2] == "text":
-                        addAction(f"await guild.create_text_channel('{command[3]}')")
-                    elif command[2] == "voice":
-                        addAction(f"await guild.create_voice_channel('{command[3]}')")
-                    else:
-                        raiseError(f"({linenum}) Invalid argument (discord.channel create {command[3]}. (Expected channel type (text/voice))")
-                
-                # tODO: allow users to delete channels, but find a proper way to do it without them abusing it
-                # most likely use names, error handling hell awaits.
-
-                else: # Invalid arguments on c[1]
-                    raiseError(f"({linenum}) Invalid argument (discord.channel {command[1]}) (expected channel action)")
-
-            # Raise an error on unknown commands
+        for char in input_string:
+            if char == ' ' and not inside_quotes:
+                if current_word:
+                    result.append(current_word)
+                    current_word = ""
+            elif char == '"':
+                inside_quotes = not inside_quotes
             else:
-                raiseError(f'({linenum}) Invalid command, "{line}"')
-            
-        if gotoline is None:
-            break
+                current_word += char
 
-    # Response output
-    if actionlist == []:
-        actionlist = None
-    actionqueue.put(actionlist)
-    if response == []:
-        response = ["(No response) The program ran succesfully"]
-    responsequeue.put(response)
+        if current_word:
+            result.append(current_word)
+
+        return result
+    def reg_split(input_string):
+        """Split with regex from ';', but not when inside double quotes"""
+        # Define a regular expression pattern to match the desired delimiter (;)
+        # but not inside double quotes
+        pattern = re.compile(r';(?=(?:[^"]*"[^"]*")*[^"]*$)')
+
+        # Use re.split to split the string based on the pattern
+        result = re.split(pattern, input_string)
+
+        return result
+    
+    codeList = []
+    code = code.replace("\n", "")
+    cList = reg_split(code)
+    for i in cList:
+        filter = splitBySpace(i)
+        if filter == ['']:
+            continue
+        codeList.append(filter)
+    return codeList # FIXME: (2.1.0) make it so that comments are split properly (not working rn, you'd need to add a ; to the end of the comment)
+
+def raiseError(error: str="Unknown error in compiler phase!"):
+    """Simply "raises" an error"""
+    return [f"({linenum}): {error}"]
+
+def addToMemory(memory: dict, name: str, value):
+    """Adds a value to a memory. Made to be a function in case I need to edit this later (without changing everything in the code)"""
+    memory[name] = value
+    return memory
+
+def getMemory(memory: dict, name: str, error: str="Could not find value from memory"):
+    """Gets a value from memory. Made to be a function for simpler error handling"""
+    try:
+        value = memory[name]
+    except:
+        return raiseError(error)
+    return value #type: ignore (raiseError will take care of it)
+
+def typeCheck(variable, supposedType: str=None): #type: ignore
+    """Automatically converts the type to the correct type.
+    supposedType can be set to force it to be one type. It'll raise an error if the type is not valid"""
+    # No type input, guess the type
+    variable = str(variable)
+    if supposedType is None:
+        if variable.isnumeric():
+            return int(variable)
+        elif variable == "True":
+            return True
+        elif variable == "False":
+            return False
+        else:
+            return str(variable)
+    else: # Force type to be the one input (or get error!)
+        try:
+            if supposedType == "str":
+                return str(variable)
+            elif supposedType == "int":
+                return int(variable)
+            elif supposedType == "bool":
+                return bool(variable)
+            else:
+                return raiseError(f"No such type as {supposedType}.")
+        except ValueError as e:
+            raiseError(f"Expected value to be {supposedType}")
+
+def evaluate(op1, operator, op2):
+    """Basically an if statement but it returns you the output"""
+    def equals(op1, op2):
+        return op1 == op2
+
+    def not_equals(op1, op2):
+        return op1 != op2
+
+    def greater_than(op1, op2):
+        return op1 > op2
+
+    def greater_than_or_equal(op1, op2):
+        return op1 >= op2
+
+    def less_than(op1, op2):
+        return op1 < op2
+
+    def less_than_or_equal(op1, op2):
+        return op1 <= op2
+
+    comparison_functions = {
+        "==": equals,
+        "!=": not_equals,
+        ">": greater_than,
+        ">=": greater_than_or_equal,
+        "<": less_than,
+        "<=": less_than_or_equal,
+    }
+
+    if operator in comparison_functions:
+        return comparison_functions[operator](op1, op2)
+    else:
+        return raiseError(f"Invalid operator")
+            
+def arithmetic(op1, operator, op2):
+    """Runs an arithmetic operation, and returns you the output"""
+    def add(op1, op2):
+        return op1 + op2
+
+    def subtract(op1, op2):
+        return op1 - op2
+
+    def multiply(op1, op2):
+        return op1 * op2
+
+    def divide(op1, op2):
+        if op2 != 0:
+            return op1 / op2
+        else:
+            raiseError("Division by zero")
+
+    def power(op1, op2):
+        return op1 ** op2
+
+    arithmetic_functions = {
+        "+": add,
+        "-": subtract,
+        "*": multiply,
+        "/": divide,
+        "^": power,
+    }
+
+    if operator in arithmetic_functions:
+        return arithmetic_functions[operator](op1, op2)
+    else:
+        raiseError(f"Invalid arithmetic operator")
+
+def checkForVariable(variableMemory, value):
+    """Checks if a string is referring to a variable"""
+    if value[0] == "&": # if the first letter of the value is &, get the variable that it mentions
+        value = getMemory(variableMemory, value[1:], f"No such variable as {value[1:]}")
+    return value
+
+#! - - - - - (compiler starts here)
+
+def compile(code, admin: bool, arguments: list):
+    startingTime = time()
+    global linenum
+
+    code = tokenize(code)
+    response = [] # The response that we're giving back
+    functionMemory = {} # Memory which stores Functions / functionMemory format is { "function-name": line-number }
+    variableMemory = {} # ^ but with variables / variableMemory format is { "variable-name": value }
+    skipLine = 0 # The line we need to skip to (Should never be < 0, 0 means that we aren't skipping lines)
+    returnLine = 0 # Storage for when we need to return to the line we started on (in functions)
+    inFunction = False # Whether we are in a function or not
+    functionCalled = False # Whether we are in a function THAT HAS BEEN CALLED or not
+    conditionalDepth = 0 # Whether we are in a conditional statement or not (Should never be < 0)
+    skipTill = "" # Change this to skip until you hit a command that you need
+    while True:
+        linenum = 0
+        for command in code: 
+            linenum += 1
+
+            # Time limit
+            if time() - startingTime > 300: return raiseError("The program took too long to run, so it was terminated")
+
+            # Logic for line skipping
+            # SkipTill = "" / skip until it hits this string, only counts command[0], does not go backwards like SkipLine
+            # SkipLine = """ / line number you want to skip to (also goes backwards if you need)
+            if skipTill != "":
+                if command[0] == skipTill:
+                    skipTill = ""
+                else:
+                    continue
+            if skipLine != 0:
+                if linenum < skipLine:
+                    continue # We skip this line
+                elif linenum == skipLine:
+                    skipLine = 0 # we stop skipping lines
+                else:
+                    break # we need to break from the loop to get back to the start
+
+            """#? Command register
+            if command[0] is a "registered" command (as in declared here) you can make it run stuff. Any arguments will be command[(number)]
+            The "registering" will be as simple as running an if command[0] is the name of the command, as you can see below
+            """
+
+            if command == []: # Empty command (newline)
+                continue
+
+            elif command[0] == "respond":
+                value = command[1]
+                value = checkForVariable(variableMemory, value)
+                if command[2] == "nonstack":
+                    response[-1] += value
+                    continue
+                response.append(value)
+
+            elif command[0] == "var":
+                value = command[3]
+
+                # Variable checking
+                value = checkForVariable(variableMemory, value)
+                
+                # Type checking
+                value = typeCheck(value, command[1])
+                
+                addToMemory(variableMemory, command[2], value)
+
+            elif command[0] == "./":
+                # Tags
+                if command[1] == "argument":
+                    name = command[2]
+                    value = int(typeCheck(command[3], "int")) #type: ignore
+                    try:
+                        value = arguments[value-1]
+                    except IndexError:
+                        return raiseError(f"Not enough arguments provided")
+                    except Exception as e:
+                        return raiseError(f"Unknown error: {e}")
+                    value = typeCheck(value)
+                    value = addToMemory(variableMemory, name, value)
+
+                elif command[1] == "noadmin":
+                    admin = True
+
+                elif command[1] == "admin":
+                    if admin is False:
+                        raiseError("Admin privilige is required to run this command")
+                
+                else:
+                    return raiseError(f"No tag called {command[1]}")
+
+            elif command[0] == ":f":
+                #! # FIXME: (2.1.0) Function in function raises error!
+                addToMemory(functionMemory, command[1], linenum)
+                inFunction = True
+                skipTill = "end"
+
+            elif command[0] == "endfunc":
+                if not inFunction and not functionCalled:
+                    return raiseError(f"Not in a function!")
+                if functionCalled:
+                    skipLine = returnLine
+                    returnLine = 0
+                inFunction = False
+
+            elif command[0] == "function":
+                funcLine = int(getMemory(functionMemory, command[1], f"Function not found!")) #type: ignore
+                skipLine = funcLine + 1
+                returnLine = linenum + 1
+                functionCalled = True
+                inFunction = True
+
+            elif command[0] == "jump":
+                skipLine = int(command[1])
+            
+            elif command[0] == "if":
+                # Get the arguments for op1, op2 and the operator 
+                op1 = command[1]
+                op2 = command[3]
+                operator = command[2]
+
+                # Check for variables
+                op1 = checkForVariable(variableMemory, op1)
+                op2 = checkForVariable(variableMemory, op2)
+
+                op1 = typeCheck(op1)
+                op2 = typeCheck(op2)
+
+                value = evaluate(op1, operator, op2)
+                if value is False:
+                    skipTill = "endif"
+                conditionalDepth += 1
+                
+            elif command[0] == "endif":
+                if conditionalDepth <= 0:
+                    return raiseError(f"Not in a conditional statement!")
+                conditionalDepth = -1
+                continue
+
+            elif command[0] == "math":
+                storage = command[1]
+                op1 = command[2]
+                op2 = command[4]
+                operator = command[3]
+
+                op1 = typeCheck(checkForVariable(variableMemory, op1), "int")
+                op2 = typeCheck(checkForVariable(variableMemory, op2), "int")
+
+                value = arithmetic(op1, operator, op2)
+                
+                addToMemory(variableMemory, storage, value)
+
+            else: # Command does not exist
+                return raiseError(f"No such command as {command[0]}")
+
+        # End of while loop
+        if skipLine == 0:
+            return response

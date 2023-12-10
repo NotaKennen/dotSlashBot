@@ -1,10 +1,9 @@
 token.txt
-testcommands
+test programs
+Bot storage
 __pycache__
-Saved programs
-testbot.py
-command.txt
-temp programs
-Server commands
+manualInterface.py
+manualInterfaceRW.py
 untoken.txt
-triggers
+.vscode
+compilerDEPR.py
