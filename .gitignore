@@ -3,7 +3,8 @@ test programs
 Bot storage
 __pycache__
 manualInterface.py
-manualInterfaceRW.py
+manualInterfaceDEPR.py
 untoken.txt
 .vscode
 compilerDEPR.py
+.gitignore

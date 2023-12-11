@@ -6,7 +6,7 @@ import time
 import os
 
 PROD = False # Production environment (bool)
-VERSION = "2.0.0" # Bot version 1.(major).(minor) (String)
+VERSION = "2.0.1" # Bot version 1.(major).(minor) (String)
 STARTTIME = time.time()
 
 if PROD == True:
@@ -29,8 +29,6 @@ if PROD == True:
 		server.start()
 
 	keep_alive()
-
-print("----------------------------------------------")
 
 def runprogram(ctx, code, argumentsStr: str=""): #type: ignore
 	"""
@@ -105,6 +103,41 @@ async def get_attachments(ctx, path, name: str=None): #type: ignore
 	else:
 		return False
 
+def startCrashLog():
+	def keepUpdating():
+		while True:
+			time.sleep(5)
+			with open("Bot storage/crashlog.txt", "w") as crashlog:
+				crashlog.write(str(time.time()))
+	try:
+		with open("Bot storage/crashlog.txt", "r") as crashlog:
+			crashtime = float(crashlog.read())
+	except Exception:
+		with open("Bot storage/crashlog.txt", "w") as crashlog:
+			crashlog.write(str(time.time()))
+		crashtime = 0
+
+	thread = ThreadPool(processes=1) # Fake thread I guess
+	thread.apply_async(keepUpdating, args=()) # make a "thread"
+
+	return time.time() - crashtime
+
+## Pre startup logic
+CRASHTIME = round(startCrashLog(), 2)
+units = "seconds"
+if CRASHTIME > 120:
+	CRASHTIME = round(CRASHTIME / 60, 2)
+	units = "minutes"
+if CRASHTIME > 60:
+	CRASHTIME = round(CRASHTIME / 60, 1)
+	units = "hours"
+if CRASHTIME > 48:
+	CRASHTIME = int(round(CRASHTIME / 24, 0))
+	units = "days"
+##
+
+print("----------------------------------------------")
+
 intents = discord.Intents.all()
 if PROD is True:
 	bot = commands.Bot(command_prefix='./',intents=intents)
@@ -121,8 +154,8 @@ async def on_ready():
 	await bot.change_presence(activity=botactivity, status=discord.Status.online)
 	print('Logged in as')
 	print(bot.user)
+	print(f"Offline for {CRASHTIME} {units}")
 	print('----------------------------------------------')
-
 
 @bot.command(brief="Learn about SlashScript!")
 async def documentation(ctx):
@@ -197,7 +230,7 @@ async def uptime(ctx):
 	if timer > 60:
 		timer = timer / 60
 		unit = "hours"
-	await ctx.send(f"The bot has been up for:\n{round(timer,1)} {unit}\n\nBot latency: {round(bot.latency*1000)} ms\n\nRunning version {VERSION}")
+	await ctx.send(f"The bot has been up for {round(timer,1)} {unit}\nLast offline for {CRASHTIME} {units}\n\nBot latency: {round(bot.latency*1000)} ms\n\nRunning version {VERSION}")
 
 ####################################################
 

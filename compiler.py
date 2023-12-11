@@ -9,6 +9,11 @@ def tokenize(code):
         current_word = ""
         inside_quotes = False
 
+        if input_string == "":
+            return result
+        if input_string[0] == "#":
+            return result
+
         for char in input_string:
             if char == ' ' and not inside_quotes:
                 if current_word:
@@ -33,16 +38,25 @@ def tokenize(code):
         result = re.split(pattern, input_string)
 
         return result
-    
+
     codeList = []
-    code = code.replace("\n", "")
-    cList = reg_split(code)
-    for i in cList:
-        filter = splitBySpace(i)
-        if filter == ['']:
-            continue
-        codeList.append(filter)
-    return codeList # FIXME: (2.1.0) make it so that comments are split properly (not working rn, you'd need to add a ; to the end of the comment)
+    lines = code.split("\n")
+    
+    for line in lines:
+        # Check for comments at the end of the line and remove them
+        line = line.split('#')[0].strip()
+
+        cList = reg_split(line)
+        for i in cList:
+            filter = splitBySpace(i)
+
+            if filter == ['']:
+                continue
+
+            codeList.append(filter)
+
+    return codeList 
+# FIXME There was an issue here at some point, I tried a different solution, it didn't work, I went back to this and it magically works (I also forgot what the original issue was), might be an issue in the future! 
 
 def raiseError(error: str="Unknown error in compiler phase!"):
     """Simply "raises" an error"""
@@ -161,13 +175,33 @@ def checkForVariable(variableMemory, value):
         value = getMemory(variableMemory, value[1:], f"No such variable as {value[1:]}")
     return value
 
+def getLine(line: int, command: int=-1):
+    """Gets you a line from the code, you can also specify the command. Command = -1 means that you'll get the entire line"""
+    if command == -1:
+        try:
+            return codeGlob[line]
+        except IndexError: # No such line exists
+            return False
+        except Exception as e:
+            return raiseError(f"Unknown error in compiler phase: {e}")
+    try:
+        return codeGlob[line][command]
+    except IndexError: # No such line exists
+        return False
+    except Exception as e:
+        return raiseError(f"Unknown error in compiler phase: {e}")
+    
+
 #! - - - - - (compiler starts here)
+
 
 def compile(code, admin: bool, arguments: list):
     startingTime = time()
     global linenum
+    global codeGlob
 
     code = tokenize(code)
+    codeGlob = code
     response = [] # The response that we're giving back
     functionMemory = {} # Memory which stores Functions / functionMemory format is { "function-name": line-number }
     variableMemory = {} # ^ but with variables / variableMemory format is { "variable-name": value }
@@ -177,10 +211,15 @@ def compile(code, admin: bool, arguments: list):
     functionCalled = False # Whether we are in a function THAT HAS BEEN CALLED or not
     conditionalDepth = 0 # Whether we are in a conditional statement or not (Should never be < 0)
     skipTill = "" # Change this to skip until you hit a command that you need
+    condValue = None # Latest conditional output
     while True:
         linenum = 0
         for command in code: 
             linenum += 1
+
+            # filter out empty commands and newlines
+            if command == []:
+                continue
 
             # Time limit
             if time() - startingTime > 300: return raiseError("The program took too long to run, so it was terminated")
@@ -206,15 +245,15 @@ def compile(code, admin: bool, arguments: list):
             The "registering" will be as simple as running an if command[0] is the name of the command, as you can see below
             """
 
-            if command == []: # Empty command (newline)
-                continue
-
-            elif command[0] == "respond":
+            if command[0] == "respond":
                 value = command[1]
                 value = checkForVariable(variableMemory, value)
-                if command[2] == "nonstack":
-                    response[-1] += value
-                    continue
+                try:
+                    if command[2] == "stack":
+                        response[-1] += str(value)
+                        continue
+                except IndexError:
+                    pass
                 response.append(value)
 
             elif command[0] == "var":
@@ -289,16 +328,21 @@ def compile(code, admin: bool, arguments: list):
                 op1 = typeCheck(op1)
                 op2 = typeCheck(op2)
 
-                value = evaluate(op1, operator, op2)
-                if value is False:
+                condValue = evaluate(op1, operator, op2)
+                if condValue is False:
                     skipTill = "endif"
                 conditionalDepth += 1
                 
             elif command[0] == "endif":
                 if conditionalDepth <= 0:
                     return raiseError(f"Not in a conditional statement!")
-                conditionalDepth = -1
-                continue
+                conditionalDepth -= 1
+                if getLine(linenum + 1) == ["else"] and condValue is True: # if the next line is "else"
+                    skipTill = "endif"
+                    conditionalDepth += 1
+                    
+            elif command[0] == "else":
+                conditionalDepth += 1
 
             elif command[0] == "math":
                 storage = command[1]
